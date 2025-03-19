@@ -1,10 +1,12 @@
 package yql
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/sqlc-dev/sqlc/internal/sql/ast"
 	parser "github.com/ydb-platform/yql-parsers/go"
-	"strings"
 )
 
 type objectRefProvider interface {
@@ -114,4 +116,28 @@ func parseIdTable(ctx parser.IIdContext) string {
 		return ""
 	}
 	return ctx.GetText()
+}
+
+func parseIntegerValue(text string) (int64, error) {
+	text = strings.ToLower(text)
+	base := 10
+
+	switch {
+	case strings.HasPrefix(text, "0x"):
+		base = 16
+		text = strings.TrimPrefix(text, "0x")
+
+	case strings.HasPrefix(text, "0o"):
+		base = 8
+		text = strings.TrimPrefix(text, "0o")
+
+	case strings.HasPrefix(text, "0b"):
+		base = 2
+		text = strings.TrimPrefix(text, "0b")
+	}
+
+	// debug!!!
+	text = strings.TrimRight(text, "pulstibn")
+
+	return strconv.ParseInt(text, base, 64)
 }

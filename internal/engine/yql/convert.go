@@ -1,13 +1,14 @@
 package yql
 
 import (
+	"log"
+	"strconv"
+	"strings"
+
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/sqlc-dev/sqlc/internal/debug"
 	"github.com/sqlc-dev/sqlc/internal/sql/ast"
 	parser "github.com/ydb-platform/yql-parsers/go"
-	"log"
-	"strconv"
-	"strings"
 )
 
 type cc struct {
@@ -467,10 +468,260 @@ func (c *cc) convertTypeNameOrBind(n parser.IType_name_or_bindContext) *ast.Type
 }
 
 func (c *cc) convertTypeName(n parser.IType_nameContext) *ast.TypeName {
-	// todo: implement all types
-	return &ast.TypeName{
-		Name: n.GetText(),
+	if n == nil {
+		return nil
 	}
+
+	// Handle composite types
+	if composite := n.Type_name_composite(); composite != nil {
+		if node := c.convertTypeNameComposite(composite); node != nil {
+			if typeName, ok := node.(*ast.TypeName); ok {
+				return typeName
+			}
+		}
+	}
+
+	// Handle decimal type (e.g., DECIMAL(10,2))
+	if decimal := n.Type_name_decimal(); decimal != nil {
+		if integerOrBinds := decimal.AllInteger_or_bind(); len(integerOrBinds) >= 2 {
+			return &ast.TypeName{
+				Name:    "DECIMAL",
+				TypeOid: 0,
+				Names: &ast.List{
+					Items: []ast.Node{
+						c.convertIntegerOrBind(integerOrBinds[0]),
+						c.convertIntegerOrBind(integerOrBinds[1]),
+					},
+				},
+			}
+		}
+	}
+
+	// Handle simple types
+	if simple := n.Type_name_simple(); simple != nil {
+		return &ast.TypeName{
+			Name:    simple.GetText(),
+			TypeOid: 0,
+		}
+	}
+
+	return nil
+}
+
+func (c *cc) convertIntegerOrBind(n parser.IInteger_or_bindContext) ast.Node {
+	if n == nil {
+		return nil
+	}
+
+	if integer := n.Integer(); integer != nil {
+		val, err := parseIntegerValue(integer.GetText())
+		if err != nil {
+			return &ast.TODO{}
+		}
+		return &ast.Integer{Ival: val}
+	}
+
+	if bind := n.Bind_parameter(); bind != nil {
+		return c.convertBindParameter(bind.(*parser.Bind_parameterContext))
+	}
+
+	return nil
+}
+
+func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.Node {
+	if n == nil {
+		return nil
+	}
+
+	// Handle optional type (e.g., Optional<Int32>)
+	if opt := n.Type_name_optional(); opt != nil {
+		if typeName := opt.Type_name_or_bind(); typeName != nil {
+			return &ast.TypeName{
+				Name:    "Optional",
+				TypeOid: 0,
+				Names: &ast.List{
+					Items: []ast.Node{c.convertTypeNameOrBind(typeName)},
+				},
+			}
+		}
+	}
+
+	// Handle tuple type (e.g., Tuple<Int32, String>)
+	if tuple := n.Type_name_tuple(); tuple != nil {
+		if typeNames := tuple.AllType_name_or_bind(); len(typeNames) > 0 {
+			var items []ast.Node
+			for _, tn := range typeNames {
+				items = append(items, c.convertTypeNameOrBind(tn))
+			}
+			return &ast.TypeName{
+				Name:    "Tuple",
+				TypeOid: 0,
+				Names:   &ast.List{Items: items},
+			}
+		}
+	}
+
+	// Handle struct type (e.g., Struct<field1: Int32, field2: String>)
+	if struct_ := n.Type_name_struct(); struct_ != nil {
+		if structArgs := struct_.AllStruct_arg(); len(structArgs) > 0 {
+			var items []ast.Node
+			for _, _ = range structArgs {
+				// TODO: Handle struct field names and types
+				items = append(items, &ast.TODO{})
+			}
+			return &ast.TypeName{
+				Name:    "Struct",
+				TypeOid: 0,
+				Names:   &ast.List{Items: items},
+			}
+		}
+	}
+
+	// Handle variant type (e.g., Variant<Int32, String>)
+	if variant := n.Type_name_variant(); variant != nil {
+		if variantArgs := variant.AllVariant_arg(); len(variantArgs) > 0 {
+			var items []ast.Node
+			for _, _ = range variantArgs {
+				// TODO: Handle variant arguments
+				items = append(items, &ast.TODO{})
+			}
+			return &ast.TypeName{
+				Name:    "Variant",
+				TypeOid: 0,
+				Names:   &ast.List{Items: items},
+			}
+		}
+	}
+
+	// Handle list type (e.g., List<Int32>)
+	if list := n.Type_name_list(); list != nil {
+		if typeName := list.Type_name_or_bind(); typeName != nil {
+			return &ast.TypeName{
+				Name:    "List",
+				TypeOid: 0,
+				Names: &ast.List{
+					Items: []ast.Node{c.convertTypeNameOrBind(typeName)},
+				},
+			}
+		}
+	}
+
+	// Handle stream type (e.g., Stream<Int32>)
+	if stream := n.Type_name_stream(); stream != nil {
+		if typeName := stream.Type_name_or_bind(); typeName != nil {
+			return &ast.TypeName{
+				Name:    "Stream",
+				TypeOid: 0,
+				Names: &ast.List{
+					Items: []ast.Node{c.convertTypeNameOrBind(typeName)},
+				},
+			}
+		}
+	}
+
+	// Handle flow type (e.g., Flow<Int32>)
+	if flow := n.Type_name_flow(); flow != nil {
+		if typeName := flow.Type_name_or_bind(); typeName != nil {
+			return &ast.TypeName{
+				Name:    "Flow",
+				TypeOid: 0,
+				Names: &ast.List{
+					Items: []ast.Node{c.convertTypeNameOrBind(typeName)},
+				},
+			}
+		}
+	}
+
+	// Handle dict type (e.g., Dict<String, Int32>)
+	if dict := n.Type_name_dict(); dict != nil {
+		if typeNames := dict.AllType_name_or_bind(); len(typeNames) >= 2 {
+			return &ast.TypeName{
+				Name:    "Dict",
+				TypeOid: 0,
+				Names: &ast.List{
+					Items: []ast.Node{
+						c.convertTypeNameOrBind(typeNames[0]),
+						c.convertTypeNameOrBind(typeNames[1]),
+					},
+				},
+			}
+		}
+	}
+
+	// Handle set type (e.g., Set<Int32>)
+	if set := n.Type_name_set(); set != nil {
+		if typeName := set.Type_name_or_bind(); typeName != nil {
+			return &ast.TypeName{
+				Name:    "Set",
+				TypeOid: 0,
+				Names: &ast.List{
+					Items: []ast.Node{c.convertTypeNameOrBind(typeName)},
+				},
+			}
+		}
+	}
+
+	// Handle enum type (e.g., Enum<tag1, tag2>)
+	if enum := n.Type_name_enum(); enum != nil {
+		if typeTags := enum.AllType_name_tag(); len(typeTags) > 0 {
+			var items []ast.Node
+			for _, _ = range typeTags { // todo: Handle enum tags
+				items = append(items, &ast.TODO{})
+			}
+			return &ast.TypeName{
+				Name:    "Enum",
+				TypeOid: 0,
+				Names:   &ast.List{Items: items},
+			}
+		}
+	}
+
+	// Handle resource type (e.g., Resource<tag>)
+	if resource := n.Type_name_resource(); resource != nil {
+		if typeTag := resource.Type_name_tag(); typeTag != nil {
+			// TODO: Handle resource tag
+			return &ast.TypeName{
+				Name:    "Resource",
+				TypeOid: 0,
+				Names: &ast.List{
+					Items: []ast.Node{&ast.TODO{}},
+				},
+			}
+		}
+	}
+
+	// Handle tagged type (e.g., Tagged<Int32, tag>)
+	if tagged := n.Type_name_tagged(); tagged != nil {
+		if typeName := tagged.Type_name_or_bind(); typeName != nil {
+			if typeTag := tagged.Type_name_tag(); typeTag != nil {
+				// TODO: Handle tagged type and tag
+				return &ast.TypeName{
+					Name:    "Tagged",
+					TypeOid: 0,
+					Names: &ast.List{
+						Items: []ast.Node{
+							c.convertTypeNameOrBind(typeName),
+							&ast.TODO{},
+						},
+					},
+				}
+			}
+		}
+	}
+
+	// Handle callable type (e.g., Callable<(Int32, String) -> Bool>)
+	if callable := n.Type_name_callable(); callable != nil {
+		// TODO: Handle callable argument list and return type
+		return &ast.TypeName{
+			Name:    "Callable",
+			TypeOid: 0,
+			Names: &ast.List{
+				Items: []ast.Node{&ast.TODO{}},
+			},
+		}
+	}
+
+	return nil
 }
 
 func (c *cc) convertSqlStmtCore(n parser.ISql_stmt_coreContext) ast.Node {
@@ -679,13 +930,9 @@ func (c *cc) convertExpr(n *parser.ExprContext) ast.Node {
 		}
 		right := c.convertOrSubExpr(orSub)
 		left = &ast.BoolExpr{
-			Boolop: ast.BoolExprTypeOr,
-			Args: &ast.List{
-				Items: []ast.Node{
-					left,
-					right,
-				},
-			},
+			Boolop:   ast.BoolExprTypeOr,
+			Args:     &ast.List{Items: []ast.Node{left, right}},
+			Location: n.GetStart().GetStart(),
 		}
 	}
 	return left
@@ -712,13 +959,9 @@ func (c *cc) convertOrSubExpr(n *parser.Or_subexprContext) ast.Node {
 		}
 		right := c.convertAndSubexpr(andSub)
 		left = &ast.BoolExpr{
-			Boolop: ast.BoolExprTypeAnd,
-			Args: &ast.List{
-				Items: []ast.Node{
-					left,
-					right,
-				},
-			},
+			Boolop:   ast.BoolExprTypeAnd,
+			Args:     &ast.List{Items: []ast.Node{left, right}},
+			Location: n.GetStart().GetStart(),
 		}
 	}
 	return left
@@ -747,9 +990,10 @@ func (c *cc) convertAndSubexpr(n *parser.And_subexprContext) ast.Node {
 		}
 		right := c.convertXorSubexpr(xor)
 		left = &ast.A_Expr{
-			Name:  &ast.List{Items: []ast.Node{&ast.String{Str: "XOR"}}}, // !! debug !!
-			Lexpr: left,
-			Rexpr: right,
+			Name:     &ast.List{Items: []ast.Node{&ast.String{Str: "XOR"}}},
+			Lexpr:    left,
+			Rexpr:    right,
+			Location: n.GetStart().GetStart(),
 		}
 	}
 	return left
@@ -769,7 +1013,107 @@ func (c *cc) convertXorSubexpr(n *parser.Xor_subexprContext) ast.Node {
 	}
 	base := c.convertEqSubexpr(subExpr)
 	if cond := n.Cond_expr(); cond != nil {
-		return c.convertCondExpr(cond, base)
+		condCtx, ok := cond.(*parser.Cond_exprContext)
+		if !ok {
+			return base
+		}
+
+		switch {
+		case condCtx.IN() != nil:
+			if inExpr := condCtx.In_expr(); inExpr != nil {
+				return &ast.A_Expr{
+					Name:  &ast.List{Items: []ast.Node{&ast.String{Str: "IN"}}},
+					Lexpr: base,
+					Rexpr: c.convert(inExpr),
+				}
+			}
+		case condCtx.BETWEEN() != nil:
+			if eqSubs := condCtx.AllEq_subexpr(); len(eqSubs) >= 2 {
+				return &ast.BetweenExpr{
+					Expr:     base,
+					Left:     c.convert(eqSubs[0]),
+					Right:    c.convert(eqSubs[1]),
+					Not:      condCtx.NOT() != nil,
+					Location: n.GetStart().GetStart(),
+				}
+			}
+		case condCtx.ISNULL() != nil:
+			return &ast.NullTest{
+				Arg:          base,
+				Nulltesttype: 1, // IS NULL
+				Location:     n.GetStart().GetStart(),
+			}
+		case condCtx.NOTNULL() != nil:
+			return &ast.NullTest{
+				Arg:          base,
+				Nulltesttype: 2, // IS NOT NULL
+				Location:     n.GetStart().GetStart(),
+			}
+		case condCtx.IS() != nil && condCtx.NULL() != nil:
+			return &ast.NullTest{
+				Arg:          base,
+				Nulltesttype: 1, // IS NULL
+				Location:     n.GetStart().GetStart(),
+			}
+		case condCtx.IS() != nil && condCtx.NOT() != nil && condCtx.NULL() != nil:
+			return &ast.NullTest{
+				Arg:          base,
+				Nulltesttype: 2, // IS NOT NULL
+				Location:     n.GetStart().GetStart(),
+			}
+		case condCtx.Match_op() != nil:
+			// debug!!!
+			matchOp := condCtx.Match_op().GetText()
+			if eqSubs := condCtx.AllEq_subexpr(); len(eqSubs) >= 1 {
+				expr := &ast.A_Expr{
+					Name:  &ast.List{Items: []ast.Node{&ast.String{Str: matchOp}}},
+					Lexpr: base,
+					Rexpr: c.convert(eqSubs[0]),
+				}
+				if condCtx.ESCAPE() != nil && len(eqSubs) >= 2 {
+					// todo: Add ESCAPE support
+				}
+				return expr
+			}
+		case len(condCtx.AllEQUALS()) > 0 || len(condCtx.AllEQUALS2()) > 0 ||
+			len(condCtx.AllNOT_EQUALS()) > 0 || len(condCtx.AllNOT_EQUALS2()) > 0:
+			// debug!!!
+			var op string
+			switch {
+			case len(condCtx.AllEQUALS()) > 0:
+				op = "="
+			case len(condCtx.AllEQUALS2()) > 0:
+				op = "=="
+			case len(condCtx.AllNOT_EQUALS()) > 0:
+				op = "!="
+			case len(condCtx.AllNOT_EQUALS2()) > 0:
+				op = "<>"
+			}
+			if eqSubs := condCtx.AllEq_subexpr(); len(eqSubs) >= 1 {
+				return &ast.A_Expr{
+					Name:  &ast.List{Items: []ast.Node{&ast.String{Str: op}}},
+					Lexpr: base,
+					Rexpr: c.convert(eqSubs[0]),
+				}
+			}
+		case len(condCtx.AllDistinct_from_op()) > 0:
+			// debug!!!
+			distinctOps := condCtx.AllDistinct_from_op()
+			for _, distinctOp := range distinctOps {
+				if eqSubs := condCtx.AllEq_subexpr(); len(eqSubs) >= 1 {
+					not := distinctOp.NOT() != nil
+					op := "IS DISTINCT FROM"
+					if not {
+						op = "IS NOT DISTINCT FROM"
+					}
+					return &ast.A_Expr{
+						Name:  &ast.List{Items: []ast.Node{&ast.String{Str: op}}},
+						Lexpr: base,
+						Rexpr: c.convert(eqSubs[0]),
+					}
+				}
+			}
+		}
 	}
 	return base
 }
@@ -796,9 +1140,10 @@ func (c *cc) convertEqSubexpr(n *parser.Eq_subexprContext) ast.Node {
 		right := c.convertNeqSubexpr(neq)
 		opText := ops[i-1].GetText()
 		left = &ast.A_Expr{
-			Name:  &ast.List{Items: []ast.Node{&ast.String{Str: opText}}},
-			Lexpr: left,
-			Rexpr: right,
+			Name:     &ast.List{Items: []ast.Node{&ast.String{Str: opText}}},
+			Lexpr:    left,
+			Rexpr:    right,
+			Location: n.GetStart().GetStart(),
 		}
 	}
 	return left
@@ -840,9 +1185,10 @@ func (c *cc) convertNeqSubexpr(n *parser.Neq_subexprContext) ast.Node {
 		right := c.convertBitSubexpr(bl)
 		opText := ops[i-1].GetText()
 		left = &ast.A_Expr{
-			Name:  &ast.List{Items: []ast.Node{&ast.String{Str: opText}}},
-			Lexpr: left,
-			Rexpr: right,
+			Name:     &ast.List{Items: []ast.Node{&ast.String{Str: opText}}},
+			Lexpr:    left,
+			Rexpr:    right,
+			Location: n.GetStart().GetStart(),
 		}
 	}
 
@@ -855,9 +1201,10 @@ func (c *cc) convertNeqSubexpr(n *parser.Neq_subexprContext) ast.Node {
 			}
 			right := c.convertNeqSubexpr(neq)
 			left = &ast.A_Expr{
-				Name:  &ast.List{Items: []ast.Node{&ast.String{Str: "??"}}},
-				Lexpr: left,
-				Rexpr: right,
+				Name:     &ast.List{Items: []ast.Node{&ast.String{Str: "??"}}},
+				Lexpr:    left,
+				Rexpr:    right,
+				Location: n.GetStart().GetStart(),
 			}
 		}
 	} else {
@@ -869,8 +1216,9 @@ func (c *cc) convertNeqSubexpr(n *parser.Neq_subexprContext) ast.Node {
 				questionOp = strings.Repeat("?", qCount)
 			}
 			left = &ast.A_Expr{
-				Name:  &ast.List{Items: []ast.Node{&ast.String{Str: questionOp}}},
-				Lexpr: left,
+				Name:     &ast.List{Items: []ast.Node{&ast.String{Str: questionOp}}},
+				Lexpr:    left,
+				Location: n.GetStart().GetStart(),
 			}
 		}
 	}
@@ -893,9 +1241,225 @@ func (c *cc) collectBitwiseOps(ctx parser.INeq_subexprContext) []antlr.TerminalN
 	return ops
 }
 
+func (c *cc) convertBitSubexpr(n *parser.Bit_subexprContext) ast.Node {
+	addList := n.AllAdd_subexpr()
+	left := c.convertAddSubexpr(addList[0].(*parser.Add_subexprContext))
+
+	ops := c.collectBitOps(n)
+	for i := 1; i < len(addList); i++ {
+		right := c.convertAddSubexpr(addList[i].(*parser.Add_subexprContext))
+		opText := ops[i-1].GetText()
+		left = &ast.A_Expr{
+			Name:     &ast.List{Items: []ast.Node{&ast.String{Str: opText}}},
+			Lexpr:    left,
+			Rexpr:    right,
+			Location: n.GetStart().GetStart(),
+		}
+	}
+	return left
+}
+
+func (c *cc) collectBitOps(ctx parser.IBit_subexprContext) []antlr.TerminalNode {
+	var ops []antlr.TerminalNode
+	children := ctx.GetChildren()
+	for _, child := range children {
+		if tn, ok := child.(antlr.TerminalNode); ok {
+			txt := tn.GetText()
+			switch txt {
+			case "+", "-":
+				ops = append(ops, tn)
+			}
+		}
+	}
+	return ops
+}
+
+func (c *cc) convertAddSubexpr(n *parser.Add_subexprContext) ast.Node {
+	mulList := n.AllMul_subexpr()
+	left := c.convertMulSubexpr(mulList[0].(*parser.Mul_subexprContext))
+
+	ops := c.collectAddOps(n)
+	for i := 1; i < len(mulList); i++ {
+		right := c.convertMulSubexpr(mulList[i].(*parser.Mul_subexprContext))
+		opText := ops[i-1].GetText()
+		left = &ast.A_Expr{
+			Name:     &ast.List{Items: []ast.Node{&ast.String{Str: opText}}},
+			Lexpr:    left,
+			Rexpr:    right,
+			Location: n.GetStart().GetStart(),
+		}
+	}
+	return left
+}
+
+func (c *cc) collectAddOps(ctx parser.IAdd_subexprContext) []antlr.TerminalNode {
+	var ops []antlr.TerminalNode
+	for _, child := range ctx.GetChildren() {
+		if tn, ok := child.(antlr.TerminalNode); ok {
+			switch tn.GetText() {
+			case "*", "/", "%":
+				ops = append(ops, tn)
+			}
+		}
+	}
+	return ops
+}
+
+func (c *cc) convertMulSubexpr(n *parser.Mul_subexprContext) ast.Node {
+	conList := n.AllCon_subexpr()
+	left := c.convertConSubexpr(conList[0].(*parser.Con_subexprContext))
+
+	for i := 1; i < len(conList); i++ {
+		right := c.convertConSubexpr(conList[i].(*parser.Con_subexprContext))
+		left = &ast.A_Expr{
+			Name:     &ast.List{Items: []ast.Node{&ast.String{Str: "||"}}},
+			Lexpr:    left,
+			Rexpr:    right,
+			Location: n.GetStart().GetStart(),
+		}
+	}
+	return left
+}
+
+func (c *cc) convertConSubexpr(n *parser.Con_subexprContext) ast.Node {
+	if opCtx := n.Unary_op(); opCtx != nil {
+		op := opCtx.GetText()
+		operand := c.convertUnarySubexpr(n.Unary_subexpr().(*parser.Unary_subexprContext))
+		return &ast.A_Expr{
+			Name:     &ast.List{Items: []ast.Node{&ast.String{Str: op}}},
+			Rexpr:    operand,
+			Location: n.GetStart().GetStart(),
+		}
+	}
+	return c.convertUnarySubexpr(n.Unary_subexpr().(*parser.Unary_subexprContext))
+}
+
+func (c *cc) convertUnarySubexpr(n *parser.Unary_subexprContext) ast.Node {
+	if casual := n.Unary_casual_subexpr(); casual != nil {
+		return c.convertUnaryCasualSubexpr(casual.(*parser.Unary_casual_subexprContext))
+	}
+	if jsonExpr := n.Json_api_expr(); jsonExpr != nil {
+		return c.convertJsonApiExpr(jsonExpr.(*parser.Json_api_exprContext))
+	}
+	return nil
+}
+
+func (c *cc) convertJsonApiExpr(n *parser.Json_api_exprContext) ast.Node {
+	return &ast.TODO{} // todo
+}
+
+func (c *cc) convertUnaryCasualSubexpr(n *parser.Unary_casual_subexprContext) ast.Node {
+	var baseExpr ast.Node
+
+	if idExpr := n.Id_expr(); idExpr != nil {
+		baseExpr = c.convertIdExpr(idExpr.(*parser.Id_exprContext))
+	} else if atomExpr := n.Atom_expr(); atomExpr != nil {
+		baseExpr = c.convertAtomExpr(atomExpr.(*parser.Atom_exprContext))
+	}
+
+	suffixCtx := n.Unary_subexpr_suffix()
+	if suffixCtx != nil {
+		return &ast.TODO{} // todo
+	}
+
+	return baseExpr
+}
+
+func (c *cc) convertIdExpr(n *parser.Id_exprContext) ast.Node {
+	if id := n.Identifier(); id != nil {
+		return NewIdentifier(id.GetText())
+	}
+	return &ast.TODO{}
+}
+
+func (c *cc) convertAtomExpr(n *parser.Atom_exprContext) ast.Node {
+	switch {
+	case n.An_id_or_type() != nil:
+		return NewIdentifier(parseAnIdOrType(n.An_id_or_type()))
+	case n.Literal_value() != nil:
+		return c.convertLiteralValue(n.Literal_value().(*parser.Literal_valueContext))
+	case n.Bind_parameter() != nil:
+		return c.convertBindParameter(n.Bind_parameter().(*parser.Bind_parameterContext))
+	default:
+		return &ast.TODO{}
+	}
+}
+
+func (c *cc) convertLiteralValue(n *parser.Literal_valueContext) ast.Node {
+	switch {
+	case n.Integer() != nil:
+		text := n.Integer().GetText()
+		val, err := parseIntegerValue(text)
+		if err != nil {
+			if debug.Active {
+				log.Printf("Failed to parse integer value '%s': %v", text, err)
+			}
+			return &ast.TODO{}
+		}
+		return &ast.A_Const{Val: &ast.Integer{Ival: val}, Location: n.GetStart().GetStart()}
+
+	case n.Real_() != nil:
+		text := n.Real_().GetText()
+		return &ast.A_Const{Val: &ast.Float{Str: text}, Location: n.GetStart().GetStart()}
+
+	case n.STRING_VALUE() != nil:
+		str, err := strconv.Unquote(n.STRING_VALUE().GetText())
+		if err != nil {
+			if debug.Active {
+				log.Printf("Failed to unquote string value: %v", err)
+			}
+			return &ast.TODO{}
+		}
+		return &ast.A_Const{Val: &ast.String{Str: str}, Location: n.GetStart().GetStart()}
+
+	case n.Bool_value() != nil:
+		var i bool
+		if n.Bool_value().TRUE() != nil {
+			i = true
+		}
+		return &ast.Boolean{Boolval: i}
+
+	case n.NULL() != nil:
+		return &ast.Null{}
+
+	case n.CURRENT_TIME() != nil:
+		if debug.Active {
+			log.Printf("TODO: Implement CURRENT_TIME")
+		}
+		return &ast.TODO{}
+
+	case n.CURRENT_DATE() != nil:
+		if debug.Active {
+			log.Printf("TODO: Implement CURRENT_DATE")
+		}
+		return &ast.TODO{}
+
+	case n.CURRENT_TIMESTAMP() != nil:
+		if debug.Active {
+			log.Printf("TODO: Implement CURRENT_TIMESTAMP")
+		}
+		return &ast.TODO{}
+
+	case n.BLOB() != nil:
+		blobText := n.BLOB().GetText()
+		return &ast.A_Const{Val: &ast.String{Str: blobText}, Location: n.GetStart().GetStart()}
+
+	case n.EMPTY_ACTION() != nil:
+		if debug.Active {
+			log.Printf("TODO: Implement EMPTY_ACTION")
+		}
+		return &ast.TODO{}
+
+	default:
+		if debug.Active {
+			log.Printf("Unknown literal value type: %T", n)
+		}
+		return &ast.TODO{}
+	}
+}
+
 func (c *cc) convert(node node) ast.Node {
 	switch n := node.(type) {
-
 	case *parser.Sql_stmt_coreContext:
 		return c.convertSqlStmtCore(n)
 
@@ -907,6 +1471,84 @@ func (c *cc) convert(node node) ast.Node {
 
 	case *parser.Select_coreContext:
 		return c.convertSelectCoreContext(n)
+
+	case *parser.Result_columnContext:
+		return c.convertResultColumn(n)
+
+	case *parser.Join_sourceContext:
+		return c.convertJoinSource(n)
+
+	case *parser.Flatten_sourceContext:
+		return c.convertFlattenSource(n)
+
+	case *parser.Named_single_sourceContext:
+		return c.convertNamedSingleSource(n)
+
+	case *parser.Single_sourceContext:
+		return c.convertSingleSource(n)
+
+	case *parser.Bind_parameterContext:
+		return c.convertBindParameter(n)
+
+	case *parser.ExprContext:
+		return c.convertExpr(n)
+
+	case *parser.Or_subexprContext:
+		return c.convertOrSubExpr(n)
+
+	case *parser.And_subexprContext:
+		return c.convertAndSubexpr(n)
+
+	case *parser.Xor_subexprContext:
+		return c.convertXorSubexpr(n)
+
+	case *parser.Eq_subexprContext:
+		return c.convertEqSubexpr(n)
+
+	case *parser.Neq_subexprContext:
+		return c.convertNeqSubexpr(n)
+
+	case *parser.Bit_subexprContext:
+		return c.convertBitSubexpr(n)
+
+	case *parser.Add_subexprContext:
+		return c.convertAddSubexpr(n)
+
+	case *parser.Mul_subexprContext:
+		return c.convertMulSubexpr(n)
+
+	case *parser.Con_subexprContext:
+		return c.convertConSubexpr(n)
+
+	case *parser.Unary_subexprContext:
+		return c.convertUnarySubexpr(n)
+
+	case *parser.Unary_casual_subexprContext:
+		return c.convertUnaryCasualSubexpr(n)
+
+	case *parser.Id_exprContext:
+		return c.convertIdExpr(n)
+
+	case *parser.Atom_exprContext:
+		return c.convertAtomExpr(n)
+
+	case *parser.Literal_valueContext:
+		return c.convertLiteralValue(n)
+
+	case *parser.Json_api_exprContext:
+		return c.convertJsonApiExpr(n)
+
+	case *parser.Type_name_compositeContext:
+		return c.convertTypeNameComposite(n)
+
+	case *parser.Type_nameContext:
+		return c.convertTypeName(n)
+
+	case *parser.Integer_or_bindContext:
+		return c.convertIntegerOrBind(n)
+
+	case *parser.Type_name_or_bindContext:
+		return c.convertTypeNameOrBind(n)
 
 	default:
 		return todo("convert(case=default)", n)
