@@ -226,9 +226,7 @@ func (c *cc) convertJoinSource(n *parser.Join_sourceContext) ast.Node {
 			jexpr.Jointype = ast.JoinTypeInner
 		}
 		if i < len(joinConstraints) {
-			jc := joinConstraints[i]
-
-			if jc != nil {
+			if jc := joinConstraints[i]; jc != nil {
 				switch {
 				case jc.ON() != nil:
 					if exprCtx := jc.Expr(); exprCtx != nil {
@@ -533,7 +531,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		return nil
 	}
 
-	// Handle optional type (e.g., Optional<Int32>)
 	if opt := n.Type_name_optional(); opt != nil {
 		if typeName := opt.Type_name_or_bind(); typeName != nil {
 			return &ast.TypeName{
@@ -546,7 +543,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle tuple type (e.g., Tuple<Int32, String>)
 	if tuple := n.Type_name_tuple(); tuple != nil {
 		if typeNames := tuple.AllType_name_or_bind(); len(typeNames) > 0 {
 			var items []ast.Node
@@ -561,7 +557,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle struct type (e.g., Struct<field1: Int32, field2: String>)
 	if struct_ := n.Type_name_struct(); struct_ != nil {
 		if structArgs := struct_.AllStruct_arg(); len(structArgs) > 0 {
 			var items []ast.Node
@@ -577,7 +572,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle variant type (e.g., Variant<Int32, String>)
 	if variant := n.Type_name_variant(); variant != nil {
 		if variantArgs := variant.AllVariant_arg(); len(variantArgs) > 0 {
 			var items []ast.Node
@@ -593,7 +587,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle list type (e.g., List<Int32>)
 	if list := n.Type_name_list(); list != nil {
 		if typeName := list.Type_name_or_bind(); typeName != nil {
 			return &ast.TypeName{
@@ -606,7 +599,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle stream type (e.g., Stream<Int32>)
 	if stream := n.Type_name_stream(); stream != nil {
 		if typeName := stream.Type_name_or_bind(); typeName != nil {
 			return &ast.TypeName{
@@ -619,7 +611,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle flow type (e.g., Flow<Int32>)
 	if flow := n.Type_name_flow(); flow != nil {
 		if typeName := flow.Type_name_or_bind(); typeName != nil {
 			return &ast.TypeName{
@@ -632,7 +623,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle dict type (e.g., Dict<String, Int32>)
 	if dict := n.Type_name_dict(); dict != nil {
 		if typeNames := dict.AllType_name_or_bind(); len(typeNames) >= 2 {
 			return &ast.TypeName{
@@ -648,7 +638,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle set type (e.g., Set<Int32>)
 	if set := n.Type_name_set(); set != nil {
 		if typeName := set.Type_name_or_bind(); typeName != nil {
 			return &ast.TypeName{
@@ -661,7 +650,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle enum type (e.g., Enum<tag1, tag2>)
 	if enum := n.Type_name_enum(); enum != nil {
 		if typeTags := enum.AllType_name_tag(); len(typeTags) > 0 {
 			var items []ast.Node
@@ -676,7 +664,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle resource type (e.g., Resource<tag>)
 	if resource := n.Type_name_resource(); resource != nil {
 		if typeTag := resource.Type_name_tag(); typeTag != nil {
 			// TODO: Handle resource tag
@@ -690,7 +677,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle tagged type (e.g., Tagged<Int32, tag>)
 	if tagged := n.Type_name_tagged(); tagged != nil {
 		if typeName := tagged.Type_name_or_bind(); typeName != nil {
 			if typeTag := tagged.Type_name_tag(); typeTag != nil {
@@ -709,7 +695,6 @@ func (c *cc) convertTypeNameComposite(n parser.IType_name_compositeContext) ast.
 		}
 	}
 
-	// Handle callable type (e.g., Callable<(Int32, String) -> Bool>)
 	if callable := n.Type_name_callable(); callable != nil {
 		// TODO: Handle callable argument list and return type
 		return &ast.TypeName{

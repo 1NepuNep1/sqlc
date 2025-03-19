@@ -54,14 +54,31 @@ func (p *Parser) Parse(r io.Reader) ([]ast.Statement, error) {
 	}
 	pctx, ok := tree.(*parser.Sql_queryContext)
 	if !ok {
-		return nil, fmt.Errorf("expected ParserContext; got %T\n", tree)
+		return nil, fmt.Errorf("expected ParserContext; got %T\n ", tree)
 	}
 	var stmts []ast.Statement
 	stmtListCtx := pctx.Sql_stmt_list()
 	if stmtListCtx != nil {
+		loc := 0
 		for _, stmt := range stmtListCtx.AllSql_stmt() {
 			converter := &cc{}
 			out := converter.convert(stmt)
+			if _, ok := out.(*ast.TODO); ok {
+				loc = stmt.GetStop().GetStop() + 2
+				continue
+			}
+			if out != nil {
+				len := (stmt.GetStop().GetStop() + 1) - loc
+				stmts = append(stmts, ast.Statement{
+					Raw: &ast.RawStmt{
+						Stmt:         out,
+						StmtLocation: loc,
+						StmtLen:      len,
+					},
+				})
+				loc = stmt.GetStop().GetStop() + 2
+			}
 		}
 	}
+	return stmts, nil
 }
