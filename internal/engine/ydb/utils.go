@@ -1,4 +1,4 @@
-package yql
+package ydb
 
 import (
 	"strconv"

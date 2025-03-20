@@ -1,4 +1,4 @@
-package yql
+package ydb
 
 import (
 	"log"
@@ -403,7 +403,7 @@ func (c *cc) convertCreate_table_stmtContext(n *parser.Create_table_stmtContext)
 						for _, cname := range conCtx.AllAn_id() {
 							for _, col := range stmt.Cols {
 								if col.Colname == parseAnId(cname) {
-									col.PrimaryKey = true
+									col.IsNotNull = true
 								}
 							}
 						}
@@ -483,7 +483,7 @@ func (c *cc) convertTypeName(n parser.IType_nameContext) *ast.TypeName {
 	if decimal := n.Type_name_decimal(); decimal != nil {
 		if integerOrBinds := decimal.AllInteger_or_bind(); len(integerOrBinds) >= 2 {
 			return &ast.TypeName{
-				Name:    "DECIMAL",
+				Name:    "Decimal",
 				TypeOid: 0,
 				Names: &ast.List{
 					Items: []ast.Node{
@@ -1443,8 +1443,23 @@ func (c *cc) convertLiteralValue(n *parser.Literal_valueContext) ast.Node {
 	}
 }
 
+func (c *cc) convertSqlStmt(n *parser.Sql_stmtContext) ast.Node {
+	if n == nil {
+		return nil
+	}
+	// todo: handle explain
+	if core := n.Sql_stmt_core(); core != nil {
+		return c.convert(core)
+	}
+
+	return nil
+}
+
 func (c *cc) convert(node node) ast.Node {
 	switch n := node.(type) {
+	case *parser.Sql_stmtContext:
+		return c.convertSqlStmt(n)
+
 	case *parser.Sql_stmt_coreContext:
 		return c.convertSqlStmtCore(n)
 

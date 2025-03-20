@@ -1,4 +1,4 @@
-package yql
+package ydb
 
 import "github.com/sqlc-dev/sqlc/internal/sql/catalog"
 
