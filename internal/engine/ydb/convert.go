@@ -75,14 +75,14 @@ func (c *cc) convertSelectStmtContext(n *parser.Select_stmtContext) ast.Node {
 			return nil
 		}
 		selectStmt = stmt
-	case sk.Select_core() == nil:
+	case sk.Select_core() != nil:
 		cnode := c.convert(sk.Select_core())
 		stmt, ok := cnode.(*ast.SelectStmt)
 		if !ok {
 			return nil
 		}
 		selectStmt = stmt
-	case sk.Reduce_core() == nil:
+	case sk.Reduce_core() != nil:
 		cnode := c.convert(sk.Reduce_core())
 		stmt, ok := cnode.(*ast.SelectStmt)
 		if !ok {
@@ -124,7 +124,7 @@ func (c *cc) convertSelectCoreContext(n *parser.Select_coreContext) ast.Node {
 		}
 	}
 	jsList := n.AllJoin_source()
-	if len(jsList) > 0 {
+	if len(n.AllFROM()) > 0 && len(jsList) > 0 {
 		var fromItems []ast.Node
 		for _, js := range jsList {
 			jsCon, ok := js.(*parser.Join_sourceContext)
@@ -153,7 +153,7 @@ func (c *cc) convertSelectCoreContext(n *parser.Select_coreContext) ast.Node {
 func (c *cc) convertResultColumn(n *parser.Result_columnContext) ast.Node {
 	exprCtx := n.Expr()
 	if exprCtx == nil {
-		return nil
+		// todo
 	}
 	target := &ast.ResTarget{
 		Location: n.GetStart().GetStart(),
@@ -1344,15 +1344,86 @@ func (c *cc) convertUnaryCasualSubexpr(n *parser.Unary_casual_subexprContext) as
 
 	suffixCtx := n.Unary_subexpr_suffix()
 	if suffixCtx != nil {
-		return &ast.TODO{} // todo
+		ctx, ok := suffixCtx.(*parser.Unary_subexpr_suffixContext)
+		if !ok {
+			return baseExpr
+		}
+		baseExpr = c.convertUnarySubexprSuffix(baseExpr, ctx)
 	}
 
 	return baseExpr
 }
 
+func (c *cc) convertUnarySubexprSuffix(base ast.Node, n *parser.Unary_subexpr_suffixContext) ast.Node {
+	if n == nil {
+		return base
+	}
+	colRef, ok := base.(*ast.ColumnRef)
+	if !ok {
+		return base // todo: cover case when unary subexpr with atomic expr
+	}
+
+	for i := 0; i < n.GetChildCount(); i++ {
+		child := n.GetChild(i)
+		switch v := child.(type) {
+		case parser.IKey_exprContext:
+			node := c.convert(v.(*parser.Key_exprContext))
+			if node != nil {
+				colRef.Fields.Items = append(colRef.Fields.Items, node)
+			}
+
+		case parser.IInvoke_exprContext:
+			node := c.convert(v.(*parser.Invoke_exprContext))
+			if node != nil {
+				colRef.Fields.Items = append(colRef.Fields.Items, node)
+			}
+		case antlr.TerminalNode:
+			if v.GetText() == "." {
+				if i+1 < n.GetChildCount() {
+					next := n.GetChild(i + 1)
+					switch w := next.(type) {
+					case parser.IBind_parameterContext:
+						// !!! debug !!!
+						node := c.convert(next.(*parser.Bind_parameterContext))
+						colRef.Fields.Items = append(colRef.Fields.Items, node)
+					case antlr.TerminalNode:
+						// !!! debug !!!
+						val, err := parseIntegerValue(w.GetText())
+						if err != nil {
+							if debug.Active {
+								log.Printf("Failed to parse integer value '%s': %v", w.GetText(), err)
+							}
+							return &ast.TODO{}
+						}
+						node := &ast.A_Const{Val: &ast.Integer{Ival: val}, Location: n.GetStart().GetStart()}
+						colRef.Fields.Items = append(colRef.Fields.Items, node)
+					case parser.IAn_id_or_typeContext:
+						idText := parseAnIdOrType(w)
+						colRef.Fields.Items = append(colRef.Fields.Items, &ast.String{Str: idText})
+					default:
+						colRef.Fields.Items = append(colRef.Fields.Items, &ast.TODO{})
+					}
+					i++
+				}
+			}
+		}
+	}
+
+	if n.COLLATE() != nil && n.An_id() != nil {
+		// todo: Handle COLLATE
+	}
+	return colRef
+}
+
 func (c *cc) convertIdExpr(n *parser.Id_exprContext) ast.Node {
 	if id := n.Identifier(); id != nil {
-		return NewIdentifier(id.GetText())
+		return &ast.ColumnRef{
+			Fields: &ast.List{
+				Items: []ast.Node{
+					NewIdentifier(id.GetText()),
+				},
+			},
+		}
 	}
 	return &ast.TODO{}
 }
@@ -1387,15 +1458,12 @@ func (c *cc) convertLiteralValue(n *parser.Literal_valueContext) ast.Node {
 		text := n.Real_().GetText()
 		return &ast.A_Const{Val: &ast.Float{Str: text}, Location: n.GetStart().GetStart()}
 
-	case n.STRING_VALUE() != nil:
-		str, err := strconv.Unquote(n.STRING_VALUE().GetText())
-		if err != nil {
-			if debug.Active {
-				log.Printf("Failed to unquote string value: %v", err)
-			}
-			return &ast.TODO{}
+	case n.STRING_VALUE() != nil: // !!! debug !!! (problem with quoted strings)
+		val := n.STRING_VALUE().GetText()
+		if len(val) >= 2 {
+			val = val[1 : len(val)-1]
 		}
-		return &ast.A_Const{Val: &ast.String{Str: str}, Location: n.GetStart().GetStart()}
+		return &ast.A_Const{Val: &ast.String{Str: val}, Location: n.GetStart().GetStart()}
 
 	case n.Bool_value() != nil:
 		var i bool

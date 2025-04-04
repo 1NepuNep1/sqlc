@@ -1,4 +1,4 @@
-package ydb
+package ydb_test
 
 import (
 	"strconv"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/sqlc-dev/sqlc/internal/engine/ydb"
 	"github.com/sqlc-dev/sqlc/internal/sql/ast"
 	"github.com/sqlc-dev/sqlc/internal/sql/catalog"
 )
@@ -125,7 +126,7 @@ func TestCreateTable(t *testing.T) {
 		},
 	}
 
-	p := NewParser()
+	p := ydb.NewParser()
 	for i, tc := range tests {
 		test := tc
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
@@ -135,13 +136,13 @@ func TestCreateTable(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			c := newTestCatalog()
+			c := ydb.NewTestCatalog()
 			if err := c.Build(stmts); err != nil {
 				t.Log(test.stmt)
 				t.Fatal(err)
 			}
 
-			e := newTestCatalog()
+			e := ydb.NewTestCatalog()
 			if test.s != nil {
 				var replaced bool
 				for i := range e.Schemas {
