@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/antlr4-go/antlr/v4"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/sqlc-dev/sqlc/internal/engine/sqlite/parser"
 	"github.com/sqlc-dev/sqlc/internal/source"
 	"github.com/sqlc-dev/sqlc/internal/sql/ast"
@@ -83,6 +84,7 @@ func (p *Parser) Parse(r io.Reader) ([]ast.Statement, error) {
 			loc = stmt.GetStop().GetStop() + 2
 		}
 	}
+	spew.Dump(stmts)
 	return stmts, nil
 }
 

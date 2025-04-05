@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/antlr4-go/antlr/v4"
+	"github.com/sqlc-dev/sqlc/internal/source"
 	"github.com/sqlc-dev/sqlc/internal/sql/ast"
 	parser "github.com/ydb-platform/yql-parsers/go"
 )
@@ -81,4 +82,12 @@ func (p *Parser) Parse(r io.Reader) ([]ast.Statement, error) {
 		}
 	}
 	return stmts, nil
+}
+
+func (p *Parser) CommentSyntax() source.CommentSyntax {
+	return source.CommentSyntax{
+		Dash:      true,
+		Hash:      false,
+		SlashStar: true,
+	}
 }
