@@ -331,14 +331,6 @@ func (c *cc) convertBindParameter(n *parser.Bind_parameterContext) ast.Node {
 
 		if an := n.An_id_or_type(); an != nil {
 			idText := parseAnIdOrType(an)
-			if num, err := strconv.Atoi(idText); err == nil {
-				c.paramCount++
-				return &ast.ParamRef{
-					Number:   num,
-					Location: n.GetStart().GetStart(),
-					Dollar:   true,
-				}
-			}
 			return &ast.A_Expr{
 				Name:     &ast.List{Items: []ast.Node{&ast.String{Str: "@"}}},
 				Rexpr:    &ast.String{Str: idText},
@@ -352,7 +344,7 @@ func (c *cc) convertBindParameter(n *parser.Bind_parameterContext) ast.Node {
 			Dollar:   true,
 		}
 	}
-	return nil
+	return &ast.TODO{}
 }
 
 func (c *cc) convertWildCardField(n *parser.Result_columnContext) *ast.ColumnRef {
