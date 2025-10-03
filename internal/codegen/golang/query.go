@@ -198,7 +198,7 @@ func (v QueryValue) HasSqlcSlices() bool {
 func (v QueryValue) Scan() string {
 	var out []string
 	if v.Struct == nil {
-		if strings.HasPrefix(v.Typ, "[]") && v.Typ != "[]byte" && !v.SQLDriver.IsPGX() {
+		if strings.HasPrefix(v.Typ, "[]") && v.Typ != "[]byte" && !v.SQLDriver.IsPGX() && !v.SQLDriver.IsYDBGoSDK() {
 			out = append(out, "pq.Array(&"+v.Name+")")
 		} else {
 			out = append(out, "&"+v.Name)
@@ -269,32 +269,6 @@ func addDollarPrefix(name string) string {
 	return "$" + name
 }
 
-// YDBParamMapEntries returns entries for a map[string]any literal for YDB parameters.
-func (v QueryValue) YDBParamMapEntries() string {
-	if v.isEmpty() {
-		return ""
-	}
-
-	var parts []string
-	for _, field := range v.getParameterFields() {
-		if field.Column != nil && field.Column.IsNamedParam {
-			name := field.Column.GetName()
-			if name != "" {
-				key := fmt.Sprintf("%q", addDollarPrefix(name))
-				variable := v.VariableForField(field)
-				parts = append(parts, key+": "+escape(variable))
-			}
-		}
-	}
-
-	if len(parts) == 0 {
-		return ""
-	}
-
-	parts = append(parts, "")
-	return "\n" + strings.Join(parts, ",\n")
-}
-
 // ydbBuilderMethodForColumnType maps a YDB column data type to a ParamsBuilder method name.
 func ydbBuilderMethodForColumnType(dbType string) string {
 	baseType := extractBaseType(strings.ToLower(dbType))
@@ -351,10 +325,6 @@ func ydbBuilderMethodForColumnType(dbType string) string {
 
 // YDBParamsBuilder emits Go code that constructs YDB params using ParamsBuilder.
 func (v QueryValue) YDBParamsBuilder() string {
-	if v.isEmpty() {
-		return ""
-	}
-
 	var lines []string
 
 	for _, field := range v.getParameterFields() {
@@ -373,6 +343,7 @@ func (v QueryValue) YDBParamsBuilder() string {
 
 			goType := field.Type
 			isPtr := strings.HasPrefix(goType, "*")
+			isArray := field.Column.IsArray || field.Column.IsSqlcSlice
 			if isPtr {
 				goType = strings.TrimPrefix(goType, "*")
 			}
@@ -381,20 +352,39 @@ func (v QueryValue) YDBParamsBuilder() string {
 				panic(fmt.Sprintf("unknown YDB column type for param %s (goType=%s)", name, goType))
 			}
 
-			if isPtr {
-				lines = append(lines, fmt.Sprintf("\t\t\tParam(%s).BeginOptional().%s(%s).EndOptional().", paramName, method, variable))
+			if isArray {
+				lines = append(lines, fmt.Sprintf("\tvar list = parameters.Param(%s).BeginList()", paramName))
+				lines = append(lines, fmt.Sprintf("\tfor _, param := range %s {", variable))
+				lines = append(lines, fmt.Sprintf("\t\tlist = list.Add().%s(param)", method))
+				lines = append(lines, "\t}")
+				lines = append(lines, "\tparameters = list.EndList()")
+			} else if isPtr {
+				lines = append(lines, fmt.Sprintf("\tparameters = parameters.Param(%s).BeginOptional().%s(%s).EndOptional()", paramName, method, variable))
 			} else {
-				lines = append(lines, fmt.Sprintf("\t\t\tParam(%s).%s(%s).", paramName, method, variable))
+				lines = append(lines, fmt.Sprintf("\tparameters = parameters.Param(%s).%s(%s)", paramName, method, variable))
 			}
 		}
 	}
 
-	if len(lines) == 0 {
-		return ""
+	params := strings.Join(lines, "\n")
+	return fmt.Sprintf("\tparameters := ydb.ParamsBuilder()\n%s", params)
+}
+
+// YDBHasParams returns true if there are parameters to build.
+func (v QueryValue) YDBHasParams() bool {
+	if v.isEmpty() {
+		return false
 	}
 
-	params := strings.Join(lines, "\n")
-	return fmt.Sprintf("\nquery.WithParameters(\n\t\tydb.ParamsBuilder().\n%s\n\t\t\tBuild(),\n\t\t),\n", params)
+	for _, field := range v.getParameterFields() {
+		if field.Column != nil && field.Column.IsNamedParam {
+			name := field.Column.GetName()
+			if name != "" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (v QueryValue) getParameterFields() []Field {

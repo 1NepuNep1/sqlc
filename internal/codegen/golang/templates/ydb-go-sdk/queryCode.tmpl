@@ -27,8 +27,13 @@ func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBA
     {{- if .Arg.IsEmpty }}
     row, err := {{$dbArg}}.QueryRow(ctx, {{.ConstantName}}, opts...)
     {{- else }}
+    {{.Arg.YDBParamsBuilder}}
     row, err := {{$dbArg}}.QueryRow(ctx, {{.ConstantName}}, 
-        append(opts, {{.Arg.YDBParamsBuilder}})...,
+        {{- if .Arg.YDBHasParams }}
+        append(opts, query.WithParameters(parameters.Build()))...,
+        {{- else }}
+        opts...,
+        {{- end }}
     )
     {{- end }}
     {{- if or (ne .Arg.Pair .Ret.Pair) (ne .Arg.DefineType .Ret.DefineType) }}
@@ -63,8 +68,13 @@ func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBA
     {{- if .Arg.IsEmpty }}
     result, err := {{$dbArg}}.QueryResultSet(ctx, {{.ConstantName}}, opts...)
     {{- else }}
+    {{.Arg.YDBParamsBuilder}}
     result, err := {{$dbArg}}.QueryResultSet(ctx, {{.ConstantName}}, 
-        append(opts, {{.Arg.YDBParamsBuilder}})...,
+        {{- if .Arg.YDBHasParams }}
+        append(opts, query.WithParameters(parameters.Build()))...,
+        {{- else }}
+        opts...,
+        {{- end }}
     )
     {{- end }}
     if err != nil {
@@ -116,8 +126,13 @@ func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBA
     {{- if .Arg.IsEmpty }}
     err := {{$dbArg}}.Exec(ctx, {{.ConstantName}}, opts...)
     {{- else }}
+    {{.Arg.YDBParamsBuilder}}
     err := {{$dbArg}}.Exec(ctx, {{.ConstantName}}, 
-        append(opts, {{.Arg.YDBParamsBuilder}})...,
+        {{- if .Arg.YDBHasParams }}
+        append(opts, query.WithParameters(parameters.Build()))...,
+        {{- else }}
+        opts...,
+        {{- end }}
     )
     {{- end }}
     if err != nil {
