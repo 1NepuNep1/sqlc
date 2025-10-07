@@ -128,6 +128,27 @@ func (v QueryValue) UniqueFields() []Field {
 	return fields
 }
 
+// YDBUniqueFieldsWithComments returns unique fields for YDB struct generation with comments for interface{} fields
+func (v QueryValue) YDBUniqueFieldsWithComments() []Field {
+	seen := map[string]struct{}{}
+	fields := make([]Field, 0, len(v.Struct.Fields))
+
+	for _, field := range v.Struct.Fields {
+		if _, found := seen[field.Name]; found {
+			continue
+		}
+		seen[field.Name] = struct{}{}
+
+		if strings.HasSuffix(field.Type, "interface{}") {
+			field.Comment = "// sqlc couldn't resolve type, pass via params"
+		}
+
+		fields = append(fields, field)
+	}
+
+	return fields
+}
+
 func (v QueryValue) Params() string {
 	if v.isEmpty() {
 		return ""
@@ -331,7 +352,7 @@ func (v QueryValue) ydbIterateNamedParams(fn func(field Field, method string) bo
 	}
 
 	for _, field := range v.getParameterFields() {
-		if field.Column != nil && field.Column.IsNamedParam {
+		if field.Column != nil {
 			name := field.Column.GetName()
 			if name == "" {
 				continue
@@ -420,6 +441,53 @@ func (v QueryValue) getParameterFields() []Field {
 		}
 	}
 	return v.Struct.Fields
+}
+
+// YDBPair returns the argument name and type for YDB query methods, filtering out interface{} parameters
+// that are handled by manualParams instead.
+func (v QueryValue) YDBPair() string {
+	if v.isEmpty() {
+		return ""
+	}
+
+	var out []string
+	for _, arg := range v.YDBPairs() {
+		out = append(out, arg.Name+" "+arg.Type)
+	}
+	return strings.Join(out, ",")
+}
+
+// YDBPairs returns the argument name and type for YDB query methods, filtering out interface{} parameters
+// that are handled by manualParams instead.
+func (v QueryValue) YDBPairs() []Argument {
+	if v.isEmpty() {
+		return nil
+	}
+
+	if !v.EmitStruct() && v.IsStruct() {
+		var out []Argument
+		for _, f := range v.Struct.Fields {
+			if strings.HasSuffix(f.Type, "interface{}") {
+				continue
+			}
+			out = append(out, Argument{
+				Name: escape(toLowerCase(f.Name)),
+				Type: f.Type,
+			})
+		}
+		return out
+	}
+
+	if strings.HasSuffix(v.Typ, "interface{}") {
+		return nil
+	}
+
+	return []Argument{
+		{
+			Name: escape(v.Name),
+			Type: v.DefineType(),
+		},
+	}
 }
 
 // A struct used to generate methods and fields on the Queries struct

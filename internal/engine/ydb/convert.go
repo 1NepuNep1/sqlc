@@ -1797,7 +1797,7 @@ func (c *cc) VisitType_name_or_bind(n *parser.Type_name_or_bindContext) interfac
 		if !ok {
 			return todo("VisitType_name_or_bind", b)
 		}
-		return &ast.TypeName{
+		return &ast.TypeName{ // FIXME: this is not working right now for type definitions
 			Names: &ast.List{
 				Items: []ast.Node{param},
 			},
@@ -1902,30 +1902,18 @@ func (c *cc) VisitType_name_composite(n *parser.Type_name_compositeContext) inte
 
 	if struct_ := n.Type_name_struct(); struct_ != nil {
 		if structArgs := struct_.AllStruct_arg(); len(structArgs) > 0 {
-			var items []ast.Node
-			for range structArgs {
-				// TODO: Handle struct field names and types
-				items = append(items, &ast.TODO{})
-			}
 			return &ast.TypeName{
-				Name:    "Struct",
+				Name:    "any",
 				TypeOid: 0,
-				Names:   &ast.List{Items: items},
 			}
 		}
 	}
 
 	if variant := n.Type_name_variant(); variant != nil {
 		if variantArgs := variant.AllVariant_arg(); len(variantArgs) > 0 {
-			var items []ast.Node
-			for range variantArgs {
-				// TODO: Handle variant arguments
-				items = append(items, &ast.TODO{})
-			}
 			return &ast.TypeName{
-				Name:    "Variant",
+				Name:    "any",
 				TypeOid: 0,
-				Names:   &ast.List{Items: items},
 			}
 		}
 	}
@@ -1935,17 +1923,10 @@ func (c *cc) VisitType_name_composite(n *parser.Type_name_compositeContext) inte
 	}
 
 	if stream := n.Type_name_stream(); stream != nil {
-		if typeName := stream.Type_name_or_bind(); typeName != nil {
-			tn, ok := typeName.Accept(c).(ast.Node)
-			if !ok {
-				return todo("VisitType_name_composite", typeName)
-			}
+		if stream.Type_name_or_bind() != nil {
 			return &ast.TypeName{
-				Name:    "Stream",
+				Name:    "any",
 				TypeOid: 0,
-				Names: &ast.List{
-					Items: []ast.Node{tn},
-				},
 			}
 		}
 	}
@@ -1955,40 +1936,19 @@ func (c *cc) VisitType_name_composite(n *parser.Type_name_compositeContext) inte
 	}
 
 	if dict := n.Type_name_dict(); dict != nil {
-		if typeNames := dict.AllType_name_or_bind(); len(typeNames) >= 2 {
-			first, ok := typeNames[0].Accept(c).(ast.Node)
-			if !ok {
-				return todo("VisitType_name_composite", typeNames[0])
-			}
-			second, ok := typeNames[1].Accept(c).(ast.Node)
-			if !ok {
-				return todo("VisitType_name_composite", typeNames[1])
-			}
+		if dict.AllType_name_or_bind() != nil {
 			return &ast.TypeName{
-				Name:    "Dict",
+				Name:    "any",
 				TypeOid: 0,
-				Names: &ast.List{
-					Items: []ast.Node{
-						first,
-						second,
-					},
-				},
 			}
 		}
 	}
 
 	if set := n.Type_name_set(); set != nil {
-		if typeName := set.Type_name_or_bind(); typeName != nil {
-			tn, ok := typeName.Accept(c).(ast.Node)
-			if !ok {
-				return todo("VisitType_name_composite", typeName)
-			}
+		if set.Type_name_or_bind() != nil {
 			return &ast.TypeName{
-				Name:    "Set",
+				Name:    "any",
 				TypeOid: 0,
-				Names: &ast.List{
-					Items: []ast.Node{tn},
-				},
 			}
 		}
 	}
@@ -2029,7 +1989,6 @@ func (c *cc) VisitType_name_optional(n *parser.Type_name_optionalContext) interf
 	return &ast.TypeName{
 		Name:    name,
 		TypeOid: 0,
-		Names:   &ast.List{},
 	}
 }
 
@@ -2047,16 +2006,18 @@ func (c *cc) VisitType_name_list(n *parser.Type_name_listContext) interface{} {
 		return todo("VisitType_name_list", n.Type_name_or_bind())
 	}
 
-	if innerTypeName.ArrayBounds == nil {
-		innerTypeName.ArrayBounds = &ast.List{}
+	if innerTypeName.ArrayBounds != nil {
+		return &ast.TypeName{
+			Name:    "any",
+			TypeOid: 0,
+		}
 	}
 
 	return &ast.TypeName{
 		Name:    innerTypeName.Name,
 		TypeOid: 0,
-		Names:   innerTypeName.Names,
 		ArrayBounds: &ast.List{
-			Items: append(innerTypeName.ArrayBounds.Items, &ast.TODO{}),
+			Items: []ast.Node{&ast.TODO{}},
 		},
 	}
 }
