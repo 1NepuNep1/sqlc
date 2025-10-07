@@ -1797,7 +1797,8 @@ func (c *cc) VisitType_name_or_bind(n *parser.Type_name_or_bindContext) interfac
 		if !ok {
 			return todo("VisitType_name_or_bind", b)
 		}
-		return &ast.TypeName{ // FIXME: this is not working right now for type definitions
+		// FIXME: this is not working right now for type definitions
+		return &ast.TypeName{
 			Names: &ast.List{
 				Items: []ast.Node{param},
 			},
@@ -2050,8 +2051,6 @@ func (c *cc) VisitType_name_tuple(n *parser.Type_name_tupleContext) interface{} 
 			typeName = "any"
 		}
 	}
-
-	fmt.Println("Debug: typeName", typeName)
 
 	return &ast.TypeName{
 		Name:        typeName,
@@ -2371,7 +2370,6 @@ func (c *cc) VisitXor_subexpr(n *parser.Xor_subexprContext) interface{} {
 			if inExpr := condCtx.In_expr(); inExpr != nil {
 				node, ok := inExpr.Accept(c).(ast.Node)
 				if !ok {
-					log.Printf("VisitXor_subexpr 0")
 					return todo("VisitXor_subexpr", inExpr)
 				}
 				return &ast.In{
@@ -3356,7 +3354,7 @@ func (c *cc) VisitLambda(n *parser.LambdaContext) interface{} {
 	}
 
 	if n.ARROW() != nil {
-		log.Panicln("Lambda stmts are not supported in Sqlc")
+		log.Panicln("Lambda stmts are not supported in SQLC")
 		return todo("VisitLambda", n)
 	}
 
