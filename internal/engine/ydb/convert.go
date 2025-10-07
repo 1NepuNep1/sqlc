@@ -2037,7 +2037,7 @@ func (c *cc) VisitType_name_tuple(n *parser.Type_name_tupleContext) interface{} 
 		items = append(items, tnNode)
 	}
 
-	var typeName string = ""
+	var typeName string
 	for _, node := range items {
 		switch innerTypeName := node.(type) {
 		case *ast.TypeName:
@@ -2384,12 +2384,12 @@ func (c *cc) VisitXor_subexpr(n *parser.Xor_subexprContext) interface{} {
 
 				first, ok := eqSubs[0].Accept(c).(ast.Node)
 				if !ok {
-					return todo("VisitXor_subexpr 1", n)
+					return todo("VisitXor_subexpr", n)
 				}
 
 				second, ok := eqSubs[1].Accept(c).(ast.Node)
 				if !ok {
-					return todo("VisitXor_subexpr 2", n)
+					return todo("VisitXor_subexpr", n)
 				}
 
 				return &ast.BetweenExpr{
