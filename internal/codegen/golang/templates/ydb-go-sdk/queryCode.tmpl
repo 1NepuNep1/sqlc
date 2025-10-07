@@ -22,12 +22,21 @@ type {{.Ret.Type}} struct { {{- range .Ret.Struct.Fields}}
 {{if eq .Cmd ":one"}}
 {{range .Comments}}//{{.}}
 {{end -}}
+{{if .Arg.YDBHasComplexContainers}}
+func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBArgument}}db DBTX, {{end}}{{if not .Arg.IsEmpty}}{{.Arg.Pair}}, {{end}}manualParams ydb.Params, opts ...query.ExecuteOption) ({{.Ret.DefineType}}, error) {
+{{else}}
 func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBArgument}}db DBTX, {{end}}{{if not .Arg.IsEmpty}}{{.Arg.Pair}}, {{end}}opts ...query.ExecuteOption) ({{.Ret.DefineType}}, error) {
+{{end -}}
     {{- $dbArg := "q.db" }}{{- if $.EmitMethodsWithDBArgument }}{{- $dbArg = "db" }}{{- end -}}
-    {{- if .Arg.IsEmpty }}
+    {{- if .Arg.IsEmpty -}}
     row, err := {{$dbArg}}.QueryRow(ctx, {{.ConstantName}}, opts...)
-    {{- else }}
-    {{.Arg.YDBParamsBuilder}}
+    {{- else -}}
+    {{- .Arg.YDBParamsBuilder}}
+    {{- if .Arg.YDBHasComplexContainers }}
+    for name, value := range manualParams.Range() {
+        parameters = parameters.Param(name).Any(value)
+    }
+    {{- end }}
     row, err := {{$dbArg}}.QueryRow(ctx, {{.ConstantName}}, 
         {{- if .Arg.YDBHasParams }}
         append(opts, query.WithParameters(parameters.Build()))...,
@@ -63,12 +72,21 @@ func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBA
 {{if eq .Cmd ":many"}}
 {{range .Comments}}//{{.}}
 {{end -}}
+{{if .Arg.YDBHasComplexContainers}}
+func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBArgument}}db DBTX, {{end}}{{if not .Arg.IsEmpty}}{{.Arg.Pair}}, {{end}}manualParams ydb.Params, opts ...query.ExecuteOption) ([]{{.Ret.DefineType}}, error) {
+{{else}}
 func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBArgument}}db DBTX, {{end}}{{if not .Arg.IsEmpty}}{{.Arg.Pair}}, {{end}}opts ...query.ExecuteOption) ([]{{.Ret.DefineType}}, error) {
+{{end}}
     {{- $dbArg := "q.db" }}{{- if $.EmitMethodsWithDBArgument }}{{- $dbArg = "db" }}{{- end -}}
-    {{- if .Arg.IsEmpty }}
+    {{- if .Arg.IsEmpty -}}
     result, err := {{$dbArg}}.QueryResultSet(ctx, {{.ConstantName}}, opts...)
-    {{- else }}
-    {{.Arg.YDBParamsBuilder}}
+    {{- else -}}
+    {{- .Arg.YDBParamsBuilder}}
+    {{- if .Arg.YDBHasComplexContainers }}
+    for name, value := range manualParams.Range() {
+        parameters = parameters.Param(name).Any(value)
+    }
+    {{- end }}
     result, err := {{$dbArg}}.QueryResultSet(ctx, {{.ConstantName}}, 
         {{- if .Arg.YDBHasParams }}
         append(opts, query.WithParameters(parameters.Build()))...,
@@ -121,12 +139,21 @@ func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBA
 {{if eq .Cmd ":exec"}}
 {{range .Comments}}//{{.}}
 {{end -}}
+{{if .Arg.YDBHasComplexContainers}}
+func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBArgument}}db DBTX, {{end}}{{if not .Arg.IsEmpty}}{{.Arg.Pair}}, {{end}}manualParams ydb.Params, opts ...query.ExecuteOption) error {
+{{else}}
 func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBArgument}}db DBTX, {{end}}{{if not .Arg.IsEmpty}}{{.Arg.Pair}}, {{end}}opts ...query.ExecuteOption) error {
+{{end -}}
     {{- $dbArg := "q.db" }}{{- if $.EmitMethodsWithDBArgument }}{{- $dbArg = "db" }}{{- end -}}
-    {{- if .Arg.IsEmpty }}
+    {{- if .Arg.IsEmpty -}}
     err := {{$dbArg}}.Exec(ctx, {{.ConstantName}}, opts...)
-    {{- else }}
-    {{.Arg.YDBParamsBuilder}}
+    {{- else -}}
+    {{- .Arg.YDBParamsBuilder}}
+    {{- if .Arg.YDBHasComplexContainers }}
+    for name, value := range manualParams.Range() {
+        parameters = parameters.Param(name).Any(value)
+    }
+    {{- end }}
     err := {{$dbArg}}.Exec(ctx, {{.ConstantName}}, 
         {{- if .Arg.YDBHasParams }}
         append(opts, query.WithParameters(parameters.Build()))...,
