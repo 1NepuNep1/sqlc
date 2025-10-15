@@ -7,6 +7,8 @@ package querytest
 
 import (
 	"context"
+	"errors"
+	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
@@ -23,7 +25,11 @@ func (q *Queries) GetBars(ctx context.Context, opts ...query.ExecuteOption) ([]B
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []Bar
-	for row, err := range result.Rows(ctx) {
+	for {
+		row, err := result.NextRow(ctx)
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

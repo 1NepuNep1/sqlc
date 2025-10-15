@@ -7,6 +7,8 @@ package querytest
 
 import (
 	"context"
+	"errors"
+	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
@@ -82,7 +84,11 @@ func (q *Queries) LimitSQLCArg(ctx context.Context, limit uint64, opts ...query.
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []LimitSQLCArgRow
-	for row, err := range result.Rows(ctx) {
+	for {
+		row, err := result.NextRow(ctx)
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -125,7 +131,11 @@ func (q *Queries) ListUserOrders(ctx context.Context, minPrice *types.Decimal, o
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []ListUserOrdersRow
-	for row, err := range result.Rows(ctx) {
+	for {
+		row, err := result.NextRow(ctx)
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -164,7 +174,11 @@ func (q *Queries) ListUserParenExpr(ctx context.Context, arg ListUserParenExprPa
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []User
-	for row, err := range result.Rows(ctx) {
+	for {
+		row, err := result.NextRow(ctx)
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -211,7 +225,11 @@ func (q *Queries) ListUsersByFamily(ctx context.Context, arg ListUsersByFamilyPa
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []ListUsersByFamilyRow
-	for row, err := range result.Rows(ctx) {
+	for {
+		row, err := result.NextRow(ctx)
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -247,7 +265,11 @@ func (q *Queries) ListUsersByID(ctx context.Context, id int64, opts ...query.Exe
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []ListUsersByIDRow
-	for row, err := range result.Rows(ctx) {
+	for {
+		row, err := result.NextRow(ctx)
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -282,7 +304,11 @@ func (q *Queries) ListUsersWithLimit(ctx context.Context, limit uint64, opts ...
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []ListUsersWithLimitRow
-	for row, err := range result.Rows(ctx) {
+	for {
+		row, err := result.NextRow(ctx)
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

@@ -107,7 +107,11 @@ func (q *Queries) {{.MethodName}}(ctx context.Context, {{if $.EmitMethodsWithDBA
     {{else}}
     var items []{{.Ret.DefineType}}
     {{end -}}
-	for row, err := range result.Rows(ctx) {
+	for {
+        row, err := result.NextRow(ctx)
+        if errors.Is(err, io.EOF) {
+            break
+        }
 		if err != nil {
 			{{- if $.WrapErrors}}
             return nil, xerrors.WithStackTrace(fmt.Errorf("query {{.MethodName}}: %w", err))
