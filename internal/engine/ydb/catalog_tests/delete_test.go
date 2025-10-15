@@ -22,7 +22,7 @@ func TestDelete(t *testing.T) {
 					Stmt: &ast.DeleteStmt{
 						Relations: &ast.List{
 							Items: []ast.Node{
-								&ast.RangeVar{Relname: strPtr("users")},
+								&ast.RangeVar{Relname: strPtr("users"), Inh: true},
 							},
 						},
 						WhereClause: &ast.A_Expr{
@@ -60,7 +60,7 @@ func TestDelete(t *testing.T) {
 					Stmt: &ast.DeleteStmt{
 						Relations: &ast.List{
 							Items: []ast.Node{
-								&ast.RangeVar{Relname: strPtr("users")},
+								&ast.RangeVar{Relname: strPtr("users"), Inh: true},
 							},
 						},
 						WhereClause: &ast.A_Expr{
@@ -94,7 +94,7 @@ func TestDelete(t *testing.T) {
 			expected: &ast.Statement{
 				Raw: &ast.RawStmt{
 					Stmt: &ast.DeleteStmt{
-						Relations: &ast.List{Items: []ast.Node{&ast.RangeVar{Relname: strPtr("users")}}},
+						Relations: &ast.List{Items: []ast.Node{&ast.RangeVar{Relname: strPtr("users"), Inh: true}}},
 						OnCols: &ast.List{
 							Items: []ast.Node{
 								&ast.ResTarget{Name: strPtr("id")},
@@ -143,7 +143,7 @@ func TestDelete(t *testing.T) {
 			expected: &ast.Statement{
 				Raw: &ast.RawStmt{
 					Stmt: &ast.DeleteStmt{
-						Relations: &ast.List{Items: []ast.Node{&ast.RangeVar{Relname: strPtr("users")}}},
+						Relations: &ast.List{Items: []ast.Node{&ast.RangeVar{Relname: strPtr("users"), Inh: true}}},
 						OnCols: &ast.List{
 							Items: []ast.Node{
 								&ast.ResTarget{Name: strPtr("id")},
