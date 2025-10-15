@@ -19,14 +19,10 @@ WHERE b.id = $i
 `
 
 func (q *Queries) AliasBar(ctx context.Context, i int32, opts ...query.ExecuteOption) (int32, error) {
+	parameters := ydb.ParamsBuilder()
+	parameters = parameters.Param("$i").Int32(i)
 	row, err := q.db.QueryRow(ctx, aliasBar,
-		append(opts,
-			query.WithParameters(
-				ydb.ParamsBuilder().
-					Param("$i").Int32(i).
-					Build(),
-			),
-		)...,
+		append(opts, query.WithParameters(parameters.Build()))...,
 	)
 	var id int32
 	if err != nil {

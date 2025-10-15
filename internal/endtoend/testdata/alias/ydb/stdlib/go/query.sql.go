@@ -11,11 +11,11 @@ import (
 
 const aliasBar = `-- name: AliasBar :one
 SELECT id FROM bar AS b
-WHERE b.id = $p0
+WHERE b.id = $i
 `
 
-func (q *Queries) AliasBar(ctx context.Context, p0 int32) (int32, error) {
-	row := q.db.QueryRowContext(ctx, aliasBar, p0)
+func (q *Queries) AliasBar(ctx context.Context, i int32) (int32, error) {
+	row := q.db.QueryRowContext(ctx, aliasBar, i)
 	var id int32
 	err := row.Scan(&id)
 	return id, err
