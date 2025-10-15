@@ -680,7 +680,10 @@ func (c *cc) VisitDelete_stmt(n *parser.Delete_stmtContext) interface{} {
 	batch := n.BATCH() != nil
 
 	tableName := identifier(n.Simple_table_ref().Simple_table_ref_core().GetText())
-	rel := &ast.RangeVar{Relname: &tableName}
+	rel := &ast.RangeVar{
+		Relname: &tableName,
+		Inh:     true,
+	}
 
 	var where ast.Node
 	if n.WHERE() != nil && n.Expr() != nil {
@@ -850,7 +853,10 @@ func (c *cc) VisitUpdate_stmt(n *parser.Update_stmtContext) interface{} {
 	batch := n.BATCH() != nil
 
 	tableName := identifier(n.Simple_table_ref().Simple_table_ref_core().GetText())
-	rel := &ast.RangeVar{Relname: &tableName}
+	rel := &ast.RangeVar{
+		Relname: &tableName,
+		Inh:     true,
+	}
 
 	var where ast.Node
 	var setList *ast.List
@@ -998,6 +1004,7 @@ func (c *cc) VisitInto_table_stmt(n *parser.Into_table_stmtContext) interface{} 
 	tableName := identifier(n.Into_simple_table_ref().Simple_table_ref().Simple_table_ref_core().GetText())
 	rel := &ast.RangeVar{
 		Relname:  &tableName,
+		Inh:      true,
 		Location: c.pos(n.Into_simple_table_ref().GetStart()),
 	}
 
@@ -1491,8 +1498,15 @@ func (c *cc) VisitResult_column(n *parser.Result_columnContext) interface{} {
 	case n.AS() != nil && n.An_id_or_type() != nil:
 		name := parseAnIdOrType(n.An_id_or_type())
 		target.Name = &name
-	case n.An_id_as_compat() != nil: //nolint
-		// todo: parse as_compat
+	case n.An_id_as_compat() != nil:
+		// Handle aliases without AS keyword (compatibility mode)
+		aliasText := n.An_id_as_compat().GetText()
+		// Remove quotes if present
+		if len(aliasText) >= 2 && ((aliasText[0] == '"' && aliasText[len(aliasText)-1] == '"') ||
+			(aliasText[0] == '\'' && aliasText[len(aliasText)-1] == '\'')) {
+			aliasText = aliasText[1 : len(aliasText)-1]
+		}
+		target.Name = &aliasText
 	}
 	target.Val = val
 	return target
@@ -1605,11 +1619,24 @@ func (c *cc) VisitNamed_single_source(n *parser.Named_single_sourceContext) inte
 		switch source := base.(type) {
 		case *ast.RangeVar:
 			source.Alias = &ast.Alias{Aliasname: &aliasText}
+			source.Inh = true
 		case *ast.RangeSubselect:
 			source.Alias = &ast.Alias{Aliasname: &aliasText}
+		default:
+			return todo("VisitNamed_single_source", n.An_id())
 		}
-	} else if n.An_id_as_compat() != nil { //nolint
-		// todo: parse as_compat
+	} else if n.An_id_as_compat() != nil {
+		aliasText := n.An_id_as_compat().GetText()
+
+		switch source := base.(type) {
+		case *ast.RangeVar:
+			source.Alias = &ast.Alias{Aliasname: &aliasText}
+			source.Inh = true
+		case *ast.RangeSubselect:
+			source.Alias = &ast.Alias{Aliasname: &aliasText}
+		default:
+			return todo("VisitNamed_single_source", n.An_id_as_compat())
+		}
 	}
 	return base
 }
@@ -1623,6 +1650,7 @@ func (c *cc) VisitSingle_source(n *parser.Single_sourceContext) interface{} {
 		tableName := n.Table_ref().GetText() // !! debug !!
 		return &ast.RangeVar{
 			Relname:  &tableName,
+			Inh:      true,
 			Location: c.pos(n.GetStart()),
 		}
 	}
@@ -1824,36 +1852,33 @@ func (c *cc) VisitType_name(n *parser.Type_nameContext) interface{} {
 
 	if decimal := n.Type_name_decimal(); decimal != nil {
 		if integerOrBinds := decimal.AllInteger_or_bind(); len(integerOrBinds) >= 2 {
-			first, ok := integerOrBinds[0].Accept(c).(ast.Node)
-			if !ok {
-				return todo("VisitType_name", decimal.Integer_or_bind(0))
-			}
-			second, ok := integerOrBinds[1].Accept(c).(ast.Node)
-			if !ok {
-				return todo("VisitType_name", decimal.Integer_or_bind(1))
-			}
-			name := "decimal"
+			first := integerOrBinds[0].GetText()
+			second := integerOrBinds[1].GetText()
+			name := fmt.Sprintf("Decimal(%s,%s)", first, second)
 			if questionCount > 0 {
 				name = name + "?"
 			}
 			return &ast.TypeName{
 				Name:    name,
 				TypeOid: 0,
-				Names: &ast.List{
-					Items: []ast.Node{
-						first,
-						second,
-					},
-				},
 			}
 		}
 	}
 
 	if simple := n.Type_name_simple(); simple != nil {
 		name := simple.GetText()
+
+		if name == "Integer" {
+			return &ast.TypeName{
+				Name:    "any",
+				TypeOid: 0,
+			}
+		}
+
 		if questionCount > 0 {
 			name = name + "?"
 		}
+
 		return &ast.TypeName{
 			Name:    name,
 			TypeOid: 0,
@@ -2696,7 +2721,7 @@ func (c *cc) VisitCon_subexpr(n *parser.Con_subexprContext) interface{} {
 		}
 		return &ast.A_Expr{
 			Name:     &ast.List{Items: []ast.Node{&ast.String{Str: op}}},
-			Rexpr:    operand,
+			Lexpr:    operand,
 			Location: c.pos(n.GetStart()),
 		}
 	}
@@ -2804,23 +2829,27 @@ func (c *cc) VisitIn_atom_expr(n *parser.In_atom_exprContext) interface{} {
 	}
 
 	switch {
-	case n.An_id_or_type() != nil:
-		if n.NAMESPACE() != nil {
-			return NewIdentifier(parseAnIdOrType(n.An_id_or_type()) + "::" + parseIdOrType(n.Id_or_type()))
-		}
-		return NewIdentifier(parseAnIdOrType(n.An_id_or_type()))
 	case n.Literal_value() != nil:
 		expr, ok := n.Literal_value().Accept(c).(ast.Node)
 		if !ok {
 			return todo("VisitAtom_expr", n.Literal_value())
 		}
 		return expr
+
 	case n.Bind_parameter() != nil:
 		expr, ok := n.Bind_parameter().Accept(c).(ast.Node)
 		if !ok {
 			return todo("VisitAtom_expr", n.Bind_parameter())
 		}
 		return expr
+
+	case n.Lambda() != nil:
+		expr, ok := n.Lambda().Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitAtom_expr", n.Lambda())
+		}
+		return expr
+
 	case n.Cast_expr() != nil:
 		expr, ok := n.Cast_expr().Accept(c).(ast.Node)
 		if !ok {
@@ -2828,12 +2857,20 @@ func (c *cc) VisitIn_atom_expr(n *parser.In_atom_exprContext) interface{} {
 		}
 		return expr
 
-	case n.LPAREN() != nil && n.Select_stmt() != nil && n.RPAREN() != nil:
-		selectStmt, ok := n.Select_stmt().Accept(c).(ast.Node)
-		if !ok {
-			return todo("VisitAtom_expr", n.Select_stmt())
+	case n.Case_expr() != nil:
+		return todo("VisitAtom_expr", n.Case_expr())
+
+	case n.An_id_or_type() != nil:
+		if n.NAMESPACE() != nil {
+			return NewIdentifier(parseAnIdOrType(n.An_id_or_type()) + "::" + parseIdOrType(n.Id_or_type()))
 		}
-		return selectStmt
+		return NewIdentifier(parseAnIdOrType(n.An_id_or_type()))
+
+	case n.Value_constructor() != nil:
+		return todo("VisitAtom_expr", n.Value_constructor())
+
+	case n.Bitcast_expr() != nil:
+		return todo("VisitAtom_expr", n.Bitcast_expr())
 
 	case n.List_literal() != nil:
 		list, ok := n.List_literal().Accept(c).(ast.Node)
@@ -2841,6 +2878,12 @@ func (c *cc) VisitIn_atom_expr(n *parser.In_atom_exprContext) interface{} {
 			return todo("VisitAtom_expr", n.List_literal())
 		}
 		return list
+
+	case n.Dict_literal() != nil:
+		return todo("VisitAtom_expr", n.Dict_literal())
+
+	case n.Struct_literal() != nil:
+		return todo("VisitAtom_expr", n.Struct_literal())
 
 	// TODO: check other cases
 	default:
@@ -3200,7 +3243,11 @@ func (c *cc) VisitAtom_expr(n *parser.Atom_exprContext) interface{} {
 		return expr
 
 	case n.Exists_expr() != nil:
-		return todo("VisitAtom_expr", n.Exists_expr())
+		expr, ok := n.Exists_expr().Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitAtom_expr", n.Exists_expr())
+		}
+		return expr
 
 	case n.Case_expr() != nil:
 		return todo("VisitAtom_expr", n.Case_expr())
@@ -3260,6 +3307,38 @@ func (c *cc) VisitCast_expr(n *parser.Cast_exprContext) interface{} {
 		TypeName: typeName,
 		Location: c.pos(n.GetStart()),
 	}
+}
+
+func (c *cc) VisitExists_expr(n *parser.Exists_exprContext) interface{} {
+	if n == nil || n.EXISTS() == nil || n.LPAREN() == nil || n.RPAREN() == nil || (n.Select_stmt() == nil && n.Values_stmt() == nil) {
+		return todo("VisitExists_expr", n)
+	}
+
+	exists := &ast.SubLink{
+		Xpr:         &ast.TODO{},
+		SubLinkType: ast.EXISTS_SUBLINK,
+		Location:    c.pos(n.GetStart()),
+	}
+
+	switch {
+	case n.Select_stmt() != nil:
+		Subselect, ok := n.Select_stmt().Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitExists_expr", n.Select_stmt())
+		}
+		exists.Subselect = Subselect
+	case n.Values_stmt() != nil:
+		Subselect, ok := n.Values_stmt().Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitExists_expr", n.Values_stmt())
+		}
+		exists.Subselect = Subselect
+
+	default:
+		return todo("VisitExists_expr", n)
+	}
+
+	return exists
 }
 
 func (c *cc) VisitList_literal(n *parser.List_literalContext) interface{} {

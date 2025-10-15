@@ -163,7 +163,7 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 		}
 		return "*string"
 
-	case "date", "date32", "datetime", "timestamp", "tzdate", "tztimestamp", "tzdatetime":
+	case "date", "date32", "datetime", "timestamp", "tzdate", "tztimestamp", "tzdatetime", "datetime64", "timestamp64", "tzdate32", "tzdatetime64", "tztimestamp64":
 		if notNull {
 			return "time.Time"
 		}
@@ -171,6 +171,15 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 			return "*time.Time"
 		}
 		return "*time.Time"
+
+	case "interval", "interval64":
+		if notNull {
+			return "time.Duration"
+		}
+		if emitPointersForNull {
+			return "*time.Duration"
+		}
+		return "*time.Duration"
 
 	case "uuid":
 		if notNull {
@@ -197,7 +206,28 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 	case "any":
 		return "interface{}"
 
+	case "integer":
+		// integer type is used for LIMIT/OFFSET parameters - use uint64 for semantic correctness
+		if notNull {
+			return "uint64"
+		}
+		if emitPointersForNull {
+			return "*uint64"
+		}
+		return "*uint64"
+	
 	default:
+		if strings.HasPrefix(columnType, "decimal") {
+			if notNull {
+				return "types.Decimal"
+			}
+
+			if emitPointersForNull {
+				return "*types.Decimal"
+			}
+			return "*types.Decimal"
+		}
+		
 		if debug.Active {
 			log.Printf("unknown YDB type: %s\n", columnType)
 		}

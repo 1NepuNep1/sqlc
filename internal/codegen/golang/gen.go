@@ -218,6 +218,8 @@ func generate(req *plugin.GenerateRequest, options *opts.Options, enums []Enum, 
 		}
 	}
 
+	isYDBEngine := func() bool { return options.Engine == "ydb" }
+
 	funcMap := template.FuncMap{
 		"lowerTitle": sdk.LowerTitle,
 		"comment":    sdk.DoubleSlashComment,
@@ -232,6 +234,7 @@ func generate(req *plugin.GenerateRequest, options *opts.Options, enums []Enum, 
 		"emitPreparedQueries": tctx.codegenEmitPreparedQueries,
 		"queryMethod":         tctx.codegenQueryMethod,
 		"queryRetval":         tctx.codegenQueryRetval,
+		"isYDBEngine":         isYDBEngine,
 	}
 
 	tmpl := template.Must(
