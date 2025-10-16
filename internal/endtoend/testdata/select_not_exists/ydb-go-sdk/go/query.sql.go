@@ -13,35 +13,6 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 )
 
-const barExists = `-- name: BarExists :one
-SELECT
-    EXISTS (
-        SELECT
-            1
-        FROM
-            bar
-        where
-            id = $id
-    )
-`
-
-func (q *Queries) BarExists(ctx context.Context, id int32, opts ...query.ExecuteOption) (bool, error) {
-	parameters := ydb.ParamsBuilder()
-	parameters = parameters.Param("$id").Int32(id)
-	row, err := q.db.QueryRow(ctx, barExists,
-		append(opts, query.WithParameters(parameters.Build()))...,
-	)
-	var exists bool
-	if err != nil {
-		return exists, xerrors.WithStackTrace(err)
-	}
-	err = row.Scan(&exists)
-	if err != nil {
-		return exists, xerrors.WithStackTrace(err)
-	}
-	return exists, nil
-}
-
 const barNotExists = `-- name: BarNotExists :one
 SELECT
     NOT EXISTS (
@@ -54,19 +25,19 @@ SELECT
     )
 `
 
-func (q *Queries) BarNotExists(ctx context.Context, id int32, opts ...query.ExecuteOption) (interface{}, error) {
+func (q *Queries) BarNotExists(ctx context.Context, id int32, opts ...query.ExecuteOption) (bool, error) {
 	parameters := ydb.ParamsBuilder()
 	parameters = parameters.Param("$id").Int32(id)
 	row, err := q.db.QueryRow(ctx, barNotExists,
 		append(opts, query.WithParameters(parameters.Build()))...,
 	)
-	var column_1 interface{}
+	var not_exists bool
 	if err != nil {
-		return column_1, xerrors.WithStackTrace(err)
+		return not_exists, xerrors.WithStackTrace(err)
 	}
-	err = row.Scan(&column_1)
+	err = row.Scan(&not_exists)
 	if err != nil {
-		return column_1, xerrors.WithStackTrace(err)
+		return not_exists, xerrors.WithStackTrace(err)
 	}
-	return column_1, nil
+	return not_exists, nil
 }

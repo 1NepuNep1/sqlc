@@ -693,7 +693,7 @@ func (c *cc) VisitDelete_stmt(n *parser.Delete_stmtContext) interface{} {
 		}
 		where = whereNode
 	}
-	var cols *ast.List
+	var cols = &ast.List{Items: []ast.Node{}}
 	var source ast.Node
 	if n.ON() != nil && n.Into_values_source() != nil {
 		nVal := n.Into_values_source()
@@ -734,7 +734,7 @@ func (c *cc) VisitDelete_stmt(n *parser.Delete_stmtContext) interface{} {
 		}
 	}
 
-	returning := &ast.List{}
+	returning := &ast.List{Items: []ast.Node{}}
 	if ret := n.Returning_columns_list(); ret != nil {
 		temp, ok := ret.Accept(c).(ast.Node)
 		if !ok {
@@ -859,8 +859,8 @@ func (c *cc) VisitUpdate_stmt(n *parser.Update_stmtContext) interface{} {
 	}
 
 	var where ast.Node
-	var setList *ast.List
-	var cols *ast.List
+	setList := &ast.List{Items: []ast.Node{}}
+	cols := &ast.List{Items: []ast.Node{}}
 	var source ast.Node
 
 	if n.SET() != nil && n.Set_clause_choice() != nil {
@@ -1022,7 +1022,7 @@ func (c *cc) VisitInto_table_stmt(n *parser.Into_table_stmtContext) interface{} 
 		onConflict.Action = ast.OnConflictAction_REPLACE
 	}
 
-	var cols *ast.List
+	cols := &ast.List{Items: []ast.Node{}}
 	var source ast.Node
 	if nVal := n.Into_values_source(); nVal != nil {
 		// todo: handle default values when implemented
@@ -1063,7 +1063,7 @@ func (c *cc) VisitInto_table_stmt(n *parser.Into_table_stmtContext) interface{} 
 		}
 	}
 
-	returning := &ast.List{}
+	returning := &ast.List{Items: []ast.Node{}}
 	if ret := n.Returning_columns_list(); ret != nil {
 		temp, ok := ret.Accept(c).(ast.Node)
 		if !ok {
@@ -1622,6 +1622,8 @@ func (c *cc) VisitNamed_single_source(n *parser.Named_single_sourceContext) inte
 			source.Inh = true
 		case *ast.RangeSubselect:
 			source.Alias = &ast.Alias{Aliasname: &aliasText}
+		case *ast.RangeFunction:
+			source.Alias = &ast.Alias{Aliasname: &aliasText}
 		default:
 			return todo("VisitNamed_single_source", n.An_id())
 		}
@@ -1634,10 +1636,27 @@ func (c *cc) VisitNamed_single_source(n *parser.Named_single_sourceContext) inte
 			source.Inh = true
 		case *ast.RangeSubselect:
 			source.Alias = &ast.Alias{Aliasname: &aliasText}
+		case *ast.RangeFunction:
+			source.Alias = &ast.Alias{Aliasname: &aliasText}
 		default:
 			return todo("VisitNamed_single_source", n.An_id_as_compat())
 		}
 	}
+
+	if n.Pure_column_list() != nil {
+		if rangeFunc, ok := base.(*ast.RangeFunction); ok {
+			colList := &ast.List{}
+			for _, anID := range n.Pure_column_list().AllAn_id() {
+				colName := parseAnId(anID)
+				colList.Items = append(colList.Items, &ast.String{Str: colName})
+			}
+			if rangeFunc.Alias == nil {
+				rangeFunc.Alias = &ast.Alias{}
+			}
+			rangeFunc.Alias.Colnames = colList
+		}
+	}
+
 	return base
 }
 
@@ -1647,12 +1666,11 @@ func (c *cc) VisitSingle_source(n *parser.Single_sourceContext) interface{} {
 	}
 
 	if n.Table_ref() != nil {
-		tableName := n.Table_ref().GetText() // !! debug !!
-		return &ast.RangeVar{
-			Relname:  &tableName,
-			Inh:      true,
-			Location: c.pos(n.GetStart()),
+		result := n.Table_ref().Accept(c)
+		if result == nil {
+			return todo("VisitSingle_source table_ref", n.Table_ref())
 		}
+		return result
 	}
 
 	if n.Select_stmt() != nil {
@@ -1663,11 +1681,86 @@ func (c *cc) VisitSingle_source(n *parser.Single_sourceContext) interface{} {
 		return &ast.RangeSubselect{
 			Subquery: subquery,
 		}
-
 	}
-	// todo: Values stmt
+
+	if n.Values_stmt() != nil {
+		valuesStmt, ok := n.Values_stmt().Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitSingle_source values_stmt", n.Values_stmt())
+		}
+		return &ast.RangeSubselect{
+			Subquery: valuesStmt,
+		}
+	}
 
 	return todo("VisitSingle_source", n)
+}
+
+func (c *cc) VisitTable_ref(n *parser.Table_refContext) interface{} {
+	if n == nil {
+		return todo("VisitTable_ref", n)
+	}
+
+	if n.Bind_parameter() != nil {
+		tableName := n.Bind_parameter().GetText()
+		log.Println("SQLC doesn't support named parameters for table names (FROM $param)") // FIXME: support named parameters for table names
+		return &ast.RangeVar{
+			Relname:  &tableName,
+			Inh:      false,
+			Location: c.pos(n.GetStart()),
+		}
+	}
+
+	if n.An_id_expr() != nil && n.LPAREN() != nil && n.RPAREN() != nil {
+		funcName := ""
+		if n.An_id_expr().STRING_VALUE() != nil {
+			funcName = n.An_id_expr().STRING_VALUE().GetText()
+		} else if n.An_id_expr().Id_expr() != nil {
+			funcName = n.An_id_expr().Id_expr().GetText()
+		} else {
+			return todo("VisitTable_ref an_id_expr", n.An_id_expr())
+		}
+
+		funcCall := &ast.FuncCall{
+			Func: &ast.FuncName{
+				Name: funcName,
+			},
+			Funcname: &ast.List{
+				Items: []ast.Node{&ast.String{Str: funcName}},
+			},
+			Args:     &ast.List{},
+			AggOrder: &ast.List{},
+		}
+
+		if n.AllTable_arg() != nil {
+			for _, tableArg := range n.AllTable_arg() {
+
+				if tableArg.Named_expr() != nil {
+					argNode, ok := tableArg.Named_expr().Accept(c).(ast.Node)
+					if ok {
+						funcCall.Args.Items = append(funcCall.Args.Items, argNode)
+					}
+				}
+			}
+		}
+
+		return &ast.RangeFunction{
+			Functions: &ast.List{
+				Items: []ast.Node{funcCall},
+			},
+		}
+	}
+
+	if n.Table_key() != nil {
+		tableName := n.Table_key().GetText()
+		return &ast.RangeVar{
+			Relname:  &tableName,
+			Inh:      true,
+			Location: c.pos(n.GetStart()),
+		}
+	}
+
+	return todo("VisitTable_ref", n)
 }
 
 func (c *cc) VisitBind_parameter(n *parser.Bind_parameterContext) interface{} {
@@ -2719,6 +2812,15 @@ func (c *cc) VisitCon_subexpr(n *parser.Con_subexprContext) interface{} {
 		if !ok {
 			return todo("VisitCon_subexpr", opCtx)
 		}
+
+		if strings.ToUpper(op) == "NOT" {
+			return &ast.BoolExpr{
+				Boolop:   ast.BoolExprTypeNot,
+				Args:     &ast.List{Items: []ast.Node{operand}},
+				Location: c.pos(n.GetStart()),
+			}
+		}
+
 		return &ast.A_Expr{
 			Name:     &ast.List{Items: []ast.Node{&ast.String{Str: op}}},
 			Lexpr:    operand,
