@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/antlr4-go/antlr/v4"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/sqlc-dev/sqlc/internal/debug"
 	"github.com/sqlc-dev/sqlc/internal/sql/ast"
 	parser "github.com/ydb-platform/yql-parsers/go"
@@ -2927,65 +2928,86 @@ func (c *cc) VisitId_expr_in(n *parser.Id_expr_inContext) interface{} {
 
 func (c *cc) VisitIn_atom_expr(n *parser.In_atom_exprContext) interface{} {
 	if n == nil {
-		return todo("VisitAtom_expr", n)
+		return todo("VisitIn_atom_expr", n)
 	}
 
 	switch {
 	case n.Literal_value() != nil:
 		expr, ok := n.Literal_value().Accept(c).(ast.Node)
 		if !ok {
-			return todo("VisitAtom_expr", n.Literal_value())
+			return todo("VisitIn_atom_expr", n.Literal_value())
 		}
 		return expr
 
 	case n.Bind_parameter() != nil:
 		expr, ok := n.Bind_parameter().Accept(c).(ast.Node)
 		if !ok {
-			return todo("VisitAtom_expr", n.Bind_parameter())
+			return todo("VisitIn_atom_expr", n.Bind_parameter())
 		}
 		return expr
 
 	case n.Lambda() != nil:
 		expr, ok := n.Lambda().Accept(c).(ast.Node)
 		if !ok {
-			return todo("VisitAtom_expr", n.Lambda())
+			return todo("VisitIn_atom_expr", n.Lambda())
 		}
 		return expr
 
 	case n.Cast_expr() != nil:
 		expr, ok := n.Cast_expr().Accept(c).(ast.Node)
 		if !ok {
-			return todo("VisitAtom_expr", n.Cast_expr())
+			return todo("VisitIn_atom_expr", n.Cast_expr())
 		}
 		return expr
 
 	case n.Case_expr() != nil:
-		return todo("VisitAtom_expr", n.Case_expr())
+		expr, ok := n.Case_expr().Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitIn_atom_expr", n.Case_expr())
+		}
+		return expr
 
 	case n.An_id_or_type() != nil:
 		if n.NAMESPACE() != nil {
-			return NewIdentifier(parseAnIdOrType(n.An_id_or_type()) + "::" + parseIdOrType(n.Id_or_type()))
+			left := parseAnIdOrType(n.An_id_or_type())
+			right := parseIdOrType(n.Id_or_type())
+			name := left + "_" + right
+			return &ast.ColumnRef{
+				Fields:   &ast.List{Items: []ast.Node{NewIdentifier(name)}},
+				Location: c.pos(n.GetStart()),
+			}
 		}
-		return NewIdentifier(parseAnIdOrType(n.An_id_or_type()))
+		name := parseAnIdOrType(n.An_id_or_type())
+		return &ast.ColumnRef{
+			Fields:   &ast.List{Items: []ast.Node{NewIdentifier(name)}},
+			Location: c.pos(n.GetStart()),
+		}
+
+	case n.Select_stmt() != nil:
+		selectStmt, ok := n.Select_stmt().Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitIn_atom_expr", n.Select_stmt())
+		}
+		return selectStmt
 
 	case n.Value_constructor() != nil:
-		return todo("VisitAtom_expr", n.Value_constructor())
+		return todo("VisitIn_atom_expr", n.Value_constructor())
 
 	case n.Bitcast_expr() != nil:
-		return todo("VisitAtom_expr", n.Bitcast_expr())
+		return todo("VisitIn_atom_expr", n.Bitcast_expr())
 
 	case n.List_literal() != nil:
 		list, ok := n.List_literal().Accept(c).(ast.Node)
 		if !ok {
-			return todo("VisitAtom_expr", n.List_literal())
+			return todo("VisitIn_atom_expr", n.List_literal())
 		}
 		return list
 
 	case n.Dict_literal() != nil:
-		return todo("VisitAtom_expr", n.Dict_literal())
+		return todo("VisitIn_atom_expr", n.Dict_literal())
 
 	case n.Struct_literal() != nil:
-		return todo("VisitAtom_expr", n.Struct_literal())
+		return todo("VisitIn_atom_expr", n.Struct_literal())
 
 	// TODO: check other cases
 	default:
@@ -3111,7 +3133,7 @@ func (c *cc) handleInvokeSuffix(base ast.Node, invokeCtx *parser.Invoke_exprCont
 				}
 			}
 			funcCall.Func = &ast.FuncName{}
-			if len(nameParts) == 2 {
+			if len(nameParts) == 2 && nameParts[0] == "sqlc" {
 				funcCall.Func.Schema = nameParts[0]
 				funcCall.Func.Name = nameParts[1]
 			} else {
@@ -3144,7 +3166,8 @@ func (c *cc) handleInvokeSuffix(base ast.Node, invokeCtx *parser.Invoke_exprCont
 			return funcCall
 		}
 	default:
-		return todo("VisitInvoke_expr", invokeCtx)
+		spew.Dump(baseNode)
+		return todo("VisitInvoke_exp", invokeCtx)
 	}
 
 	stmt := &ast.FuncExpr{
@@ -3352,13 +3375,27 @@ func (c *cc) VisitAtom_expr(n *parser.Atom_exprContext) interface{} {
 		return expr
 
 	case n.Case_expr() != nil:
-		return todo("VisitAtom_expr", n.Case_expr())
+		expr, ok := n.Case_expr().Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitAtom_expr", n.Case_expr())
+		}
+		return expr
 
 	case n.An_id_or_type() != nil:
 		if n.NAMESPACE() != nil {
-			return NewIdentifier(parseAnIdOrType(n.An_id_or_type()) + "::" + parseIdOrType(n.Id_or_type()))
+			left := parseAnIdOrType(n.An_id_or_type())
+			right := parseIdOrType(n.Id_or_type())
+			name := left + "_" + right
+			return &ast.ColumnRef{
+				Fields:   &ast.List{Items: []ast.Node{NewIdentifier(name)}},
+				Location: c.pos(n.GetStart()),
+			}
 		}
-		return NewIdentifier(parseAnIdOrType(n.An_id_or_type()))
+		name := parseAnIdOrType(n.An_id_or_type())
+		return &ast.ColumnRef{
+			Fields:   &ast.List{Items: []ast.Node{NewIdentifier(name)}},
+			Location: c.pos(n.GetStart()),
+		}
 
 	case n.Value_constructor() != nil:
 		return todo("VisitAtom_expr", n.Value_constructor())
@@ -3563,6 +3600,88 @@ func (c *cc) VisitSmart_parenthesis(n *parser.Smart_parenthesisContext) interfac
 
 	return &ast.A_ArrayExpr{
 		Elements: &args,
+		Location: c.pos(n.GetStart()),
+	}
+}
+
+func (c *cc) VisitCase_expr(n *parser.Case_exprContext) interface{} {
+	if n == nil || n.CASE() == nil || n.END() == nil {
+		return todo("VisitCase_expr", n)
+	}
+
+	caseExpr := &ast.CaseExpr{
+		Args:     &ast.List{Items: []ast.Node{}},
+		Location: c.pos(n.GetStart()),
+	}
+
+	whenExprs := n.AllWhen_expr()
+	if len(whenExprs) == 0 {
+		return todo("VisitCase_expr", n)
+	}
+
+	allExprs := n.AllExpr()
+	if len(allExprs) > 0 {
+		firstWhenStart := whenExprs[0].GetStart().GetStart()
+		firstExprStart := allExprs[0].GetStart().GetStart()
+
+		if firstExprStart < firstWhenStart {
+			arg, ok := allExprs[0].Accept(c).(ast.Node)
+			if !ok {
+				return todo("VisitCase_expr", allExprs[0])
+			}
+			caseExpr.Arg = arg
+		}
+	}
+
+	for _, whenExpr := range whenExprs {
+		whenNode, ok := whenExpr.Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitCase_expr", whenExpr)
+		}
+		caseExpr.Args.Items = append(caseExpr.Args.Items, whenNode)
+	}
+
+	if n.ELSE() != nil {
+		elseStart := n.ELSE().GetSymbol().GetStart()
+		for _, expr := range allExprs {
+			exprStart := expr.GetStart().GetStart()
+			if exprStart > elseStart {
+				elseExpr, ok := expr.Accept(c).(ast.Node)
+				if !ok {
+					return todo("VisitCase_expr", expr)
+				}
+				caseExpr.Defresult = elseExpr
+				break
+			}
+		}
+	}
+
+	return caseExpr
+}
+
+func (c *cc) VisitWhen_expr(n *parser.When_exprContext) interface{} {
+	if n == nil || n.WHEN() == nil || n.THEN() == nil {
+		return todo("VisitWhen_expr", n)
+	}
+
+	whenExprs := n.AllExpr()
+	if len(whenExprs) < 2 {
+		return todo("VisitWhen_expr", n)
+	}
+
+	condition, ok := whenExprs[0].Accept(c).(ast.Node)
+	if !ok {
+		return todo("VisitWhen_expr", whenExprs[0])
+	}
+
+	result, ok := whenExprs[1].Accept(c).(ast.Node)
+	if !ok {
+		return todo("VisitWhen_expr", whenExprs[1])
+	}
+
+	return &ast.CaseWhen{
+		Expr:     condition,
+		Result:   result,
 		Location: c.pos(n.GetStart()),
 	}
 }
