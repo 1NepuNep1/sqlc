@@ -622,9 +622,9 @@ const fSubstring2 = `-- name: FSubstring2 :one
 SELECT Substring("abcdef", 2)
 `
 
-func (q *Queries) FSubstring2(ctx context.Context) (string, error) {
+func (q *Queries) FSubstring2(ctx context.Context) ([]byte, error) {
 	row := q.db.QueryRowContext(ctx, fSubstring2)
-	var substring string
+	var substring []byte
 	err := row.Scan(&substring)
 	return substring, err
 }
@@ -633,9 +633,9 @@ const fSubstring3 = `-- name: FSubstring3 :one
 SELECT Substring("abcdef", 2, 3)
 `
 
-func (q *Queries) FSubstring3(ctx context.Context) (string, error) {
+func (q *Queries) FSubstring3(ctx context.Context) ([]byte, error) {
 	row := q.db.QueryRowContext(ctx, fSubstring3)
-	var substring string
+	var substring []byte
 	err := row.Scan(&substring)
 	return substring, err
 }
@@ -655,9 +655,9 @@ const fToBytes = `-- name: FToBytes :one
 SELECT ToBytes("abc")
 `
 
-func (q *Queries) FToBytes(ctx context.Context) (string, error) {
+func (q *Queries) FToBytes(ctx context.Context) ([]byte, error) {
 	row := q.db.QueryRowContext(ctx, fToBytes)
-	var tobytes string
+	var tobytes []byte
 	err := row.Scan(&tobytes)
 	return tobytes, err
 }
@@ -865,9 +865,9 @@ const fVersion = `-- name: FVersion :one
 SELECT Version()
 `
 
-func (q *Queries) FVersion(ctx context.Context) (string, error) {
+func (q *Queries) FVersion(ctx context.Context) ([]byte, error) {
 	row := q.db.QueryRowContext(ctx, fVersion)
-	var version string
+	var version []byte
 	err := row.Scan(&version)
 	return version, err
 }

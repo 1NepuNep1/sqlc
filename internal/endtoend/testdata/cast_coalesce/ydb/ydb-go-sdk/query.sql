@@ -3,3 +3,4 @@ SELECT COALESCE(bar, '') AS login
 FROM foo;
 
 
+

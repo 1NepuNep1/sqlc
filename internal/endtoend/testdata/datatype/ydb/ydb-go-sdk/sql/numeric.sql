@@ -18,8 +18,6 @@ CREATE TABLE dt_numeric (
     -- Decimal types
     k Decimal(22, 9),
     l Decimal(35, 0),
-    -- DyNumber type
-    m DyNumber,
     -- Serial types
     n SmallSerial,
     o Serial2,
@@ -47,8 +45,6 @@ CREATE TABLE dt_numeric_not_null (
     -- Decimal types
     k Decimal(22, 9) NOT NULL,
     l Decimal(35, 0) NOT NULL,
-    -- DyNumber type
-    m DyNumber NOT NULL,
     -- Serial types
     n SmallSerial NOT NULL,
     o Serial2 NOT NULL,

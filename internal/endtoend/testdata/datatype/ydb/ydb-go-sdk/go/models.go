@@ -23,13 +23,13 @@ type DtBooleanNotNull struct {
 
 type DtCharacter struct {
 	ID int32
-	A  *string
+	A  *[]byte
 	B  *string
 }
 
 type DtCharacterNotNull struct {
 	ID int32
-	A  string
+	A  []byte
 	B  string
 }
 
@@ -91,7 +91,6 @@ type DtNumeric struct {
 	J  *float64
 	K  *types.Decimal
 	L  *types.Decimal
-	M  interface{}
 	N  *int16
 	O  *int16
 	P  *int32
@@ -114,7 +113,6 @@ type DtNumericNotNull struct {
 	J  float64
 	K  types.Decimal
 	L  types.Decimal
-	M  interface{}
 	N  int16
 	O  int16
 	P  int32
