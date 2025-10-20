@@ -295,3 +295,48 @@ func (c *cc) collectEqualityOps(ctx parser.ICond_exprContext) []antlr.TerminalNo
 	}
 	return ops
 }
+
+
+func parseStringValue(s string) (value string, hasSuffix bool) {
+	if len(s) < 2 {
+		return s, false
+	}
+
+	quote := s[0]
+	if quote != '\'' && quote != '"' {
+		return s, false
+	}
+
+	quotePos := -1
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] == quote {
+			quotePos = i
+			break
+		}
+	}
+
+	if quotePos == -1 || quotePos == 0 {
+		return s, false
+	}
+
+	content := s[1:quotePos]
+
+	if quotePos < len(s)-1 {
+		suffix := s[quotePos+1:]
+		if isValidYDBStringSuffix(suffix) {
+			return content, true
+		}
+	}
+
+	return content, false
+}
+
+func isValidYDBStringSuffix(suffix string) bool {
+	switch suffix {
+	case "s", "S", "u", "U", "y", "Y", "j", "J",
+		"pt", "PT", "pb", "PB", "pv", "PV":
+		return true
+	default:
+		return false
+	}
+}

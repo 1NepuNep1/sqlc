@@ -215,7 +215,7 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 			return "*uint64"
 		}
 		return "*uint64"
-	
+
 	default:
 		if strings.HasPrefix(columnType, "decimal") {
 			if notNull {
@@ -227,7 +227,7 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 			}
 			return "*types.Decimal"
 		}
-		
+
 		if debug.Active {
 			log.Printf("unknown YDB type: %s\n", columnType)
 		}

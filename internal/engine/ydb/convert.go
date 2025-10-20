@@ -3523,11 +3523,14 @@ func (c *cc) VisitLiteral_value(n *parser.Literal_valueContext) interface{} {
 		return &ast.A_Const{Val: &ast.Float{Str: text}, Location: c.pos(n.GetStart())}
 
 	case n.STRING_VALUE() != nil: // !!! debug !!! (problem with quoted strings)
-		val := n.STRING_VALUE().GetText()
-		if len(val) >= 2 {
-			val = val[1 : len(val)-1]
+		originalText := n.STRING_VALUE().GetText()
+		content, hasSuffix := parseStringValue(originalText)
+
+		if hasSuffix {
+			return &ast.A_Const{Val: &ast.String{Str: originalText}, Location: c.pos(n.GetStart())}
+		} else {
+			return &ast.A_Const{Val: &ast.String{Str: content}, Location: c.pos(n.GetStart())}
 		}
-		return &ast.A_Const{Val: &ast.String{Str: val}, Location: c.pos(n.GetStart())}
 
 	case n.Bool_value() != nil:
 		var i bool
