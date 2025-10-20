@@ -114,7 +114,7 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 		return "*float64"
 
 	// string types
-	case "string", "utf8", "text":
+	case "utf8", "text":
 		if notNull {
 			return "string"
 		}
@@ -190,7 +190,7 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 		}
 		return "*uuid.UUID"
 
-	case "yson":
+	case "yson", "string":
 		if notNull {
 			return "[]byte"
 		}

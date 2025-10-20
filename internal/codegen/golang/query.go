@@ -321,8 +321,10 @@ func ydbBuilderMethodForColumnType(dbType string) string {
 		return "JSON"
 	case "jsondocument":
 		return "JSONDocument"
-	case "utf8", "text", "string":
+	case "utf8", "text":
 		return "Text"
+	case "string":
+		return "Bytes"
 	case "date":
 		return "Date"
 	case "date32":
