@@ -149,6 +149,7 @@ func (i *importer) dbImports() fileImports {
 var stdlibTypes = map[string]string{
 	"json.RawMessage":  "encoding/json",
 	"time.Time":        "time",
+	"time.Duration":    "time",
 	"net.IP":           "net",
 	"net.HardwareAddr": "net",
 	"netip.Addr":       "net/netip",

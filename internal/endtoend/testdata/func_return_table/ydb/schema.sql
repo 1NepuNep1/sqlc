@@ -4,3 +4,5 @@ CREATE TABLE accounts (
     password Text NOT NULL,
     PRIMARY KEY (id)
 );
+
+

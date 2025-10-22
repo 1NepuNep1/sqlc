@@ -4,6 +4,7 @@
     {
       "path": "go",
       "engine": "ydb",
+      "sql_package": "ydb-go-sdk",
       "name": "querytest",
       "schema": "schema.sql",
       "queries": "query.sql"
