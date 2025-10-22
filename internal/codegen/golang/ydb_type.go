@@ -72,25 +72,37 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 		return "*int64"
 
 	case "uint8":
+		if notNull {
+			return "uint8"
+		}
 		if emitPointersForNull {
 			return "*uint8"
 		}
-		return "uint8"
+		return "*uint8"
 	case "uint16":
+		if notNull {
+			return "uint16"
+		}
 		if emitPointersForNull {
 			return "*uint16"
 		}
-		return "uint16"
+		return "*uint16"
 	case "uint32":
+		if notNull {
+			return "uint32"
+		}
 		if emitPointersForNull {
 			return "*uint32"
 		}
-		return "uint32"
+		return "*uint32"
 	case "uint64":
+		if notNull {
+			return "uint64"
+		}
 		if emitPointersForNull {
 			return "*uint64"
 		}
-		return "uint64"
+		return "*uint64"
 
 	case "float":
 		if notNull {

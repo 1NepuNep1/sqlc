@@ -323,6 +323,196 @@ func (c *cc) VisitUse_stmt(n *parser.Use_stmtContext) interface{} {
 	return todo("VisitUse_stmt", n)
 }
 
+func (c *cc) VisitCreate_view_stmt(n *parser.Create_view_stmtContext) interface{} {
+	if n.CREATE() == nil || n.VIEW() == nil || n.Object_ref() == nil || n.AS() == nil || n.Select_stmt() == nil {
+		return todo("VisitCreate_view_stmt", n)
+	}
+
+	viewName := parseObjectRef(n.Object_ref())
+	if viewName == nil {
+		return todo("VisitCreate_view_stmt", n.Object_ref())
+	}
+
+	viewRangeVar := &ast.RangeVar{
+		Relname:  &viewName.Name,
+		Inh:      true,
+		Location: c.pos(n.Object_ref().GetStart()),
+	}
+
+	options := &ast.List{Items: []ast.Node{}}
+	if ctf := n.Create_object_features(); ctf != nil && ctf.Object_features() != nil {
+		optionsResult := ctf.Object_features().Accept(c)
+		if optionsList, ok := optionsResult.(*ast.List); ok {
+			options = optionsList
+		} else {
+			return optionsResult
+		}
+	}
+
+	selectStmt, ok := n.Select_stmt().Accept(c).(ast.Node)
+	if !ok {
+		return todo("VisitCreate_view_stmt", n.Select_stmt())
+	}
+
+	stmt := &ast.ViewStmt{
+		View:    viewRangeVar,
+		Query:   selectStmt,
+		Replace: n.IF() == nil && n.NOT() == nil && n.EXISTS() == nil,
+		Options: options,
+	}
+
+	return stmt
+}
+
+func (c *cc) VisitObject_features(n *parser.Object_featuresContext) interface{} {
+	if n == nil {
+		return todo("VisitObject_features", n)
+	}
+
+	var features []ast.Node
+
+	if n.Object_feature(0) != nil {
+		feature, ok := n.Object_feature(0).Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitObject_features", n.Object_feature(0))
+		}
+		features = append(features, feature)
+	}
+
+	for _, featureCtx := range n.AllObject_feature() {
+		feature, ok := featureCtx.Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitObject_features", featureCtx)
+		}
+		features = append(features, feature)
+	}
+
+	if len(features) == 0 {
+		return todo("VisitObject_features", n)
+	}
+
+	return &ast.List{Items: features}
+}
+
+func (c *cc) VisitObject_feature(n *parser.Object_featureContext) interface{} {
+	if n == nil {
+		return todo("VisitObject_feature", n)
+	}
+
+	if kv := n.Object_feature_kv(); kv != nil {
+		expr, ok := kv.Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitObject_feature", n)
+		}
+		return expr
+	}
+
+	if flag := n.Object_feature_flag(); flag != nil {
+		expr, ok := flag.Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitObject_feature", n)
+		}
+		return expr
+	}
+
+	return todo("VisitObject_feature", n)
+}
+
+func (c *cc) VisitObject_feature_kv(n *parser.Object_feature_kvContext) interface{} {
+	if n == nil || n.An_id_or_type() == nil || n.EQUALS() == nil || n.Object_feature_value() == nil {
+		return todo("VisitObject_feature_kv", n)
+	}
+
+	optionName := parseAnIdOrType(n.An_id_or_type())
+	if optionName == "" {
+		return todo("VisitObject_feature_kv", n.An_id_or_type())
+	}
+
+	valueNode, ok := n.Object_feature_value().Accept(c).(ast.Node)
+	if !ok {
+		return nil
+	}
+
+	return &ast.DefElem{
+		Defname:   &optionName,
+		Arg:       valueNode,
+		Defaction: ast.DefElemAction(1),
+		Location:  c.pos(n.GetStart()),
+	}
+}
+
+func (c *cc) VisitObject_feature_flag(n *parser.Object_feature_flagContext) interface{} {
+	if n == nil || n.An_id_or_type() == nil {
+		return todo("VisitObject_feature_flag", n)
+	}
+
+	flagName := parseAnIdOrType(n.An_id_or_type())
+	if flagName == "" {
+		return todo("VisitObject_feature_flag", n.An_id_or_type())
+	}
+
+	trueValue := &ast.A_Const{Val: &ast.Boolean{Boolval: false}, Location: c.pos(n.GetStart())}
+
+	return &ast.DefElem{
+		Defname:   &flagName,
+		Arg:       trueValue,
+		Defaction: ast.DefElemAction(1),
+		Location:  c.pos(n.GetStart()),
+	}
+}
+
+func (c *cc) VisitObject_feature_value(n *parser.Object_feature_valueContext) interface{} {
+	if n == nil {
+		return todo("VisitObject_feature_value", n)
+	}
+
+	switch {
+	case n.Id_or_type() != nil:
+		value := parseIdOrType(n.Id_or_type())
+		return &ast.A_Const{Val: &ast.String{Str: value}, Location: c.pos(n.GetStart())}
+
+	case n.Bind_parameter() != nil:
+		bindPar, ok := n.Bind_parameter().Accept(c).(ast.Node)
+		if !ok {
+			return todo("VisitObject_feature_value", n.Bind_parameter())
+		}
+		return bindPar
+
+	case n.STRING_VALUE() != nil:
+		value, _ := parseStringValue(n.STRING_VALUE().GetText())
+		return &ast.A_Const{Val: NewIdentifier(value), Location: c.pos(n.GetStart())}
+
+	case n.Bool_value() != nil:
+		return &ast.A_Const{Location: c.pos(n.GetStart()), Val: &ast.Boolean{Boolval: n.Bool_value().TRUE() != nil}}
+	}
+
+	return todo("VisitObject_feature_value", n)
+}
+
+func (c *cc) VisitDrop_view_stmt(n *parser.Drop_view_stmtContext) interface{} {
+	if n.DROP() == nil || n.VIEW() == nil || n.Object_ref() == nil {
+		return todo("VisitDrop_view_stmt", n)
+	}
+
+	viewName := parseObjectRef(n.Object_ref())
+	if viewName == nil {
+		return todo("VisitDrop_view_stmt", n.Object_ref())
+	}
+
+	table := &ast.TableName{
+		Name:    viewName.Name,
+		Schema:  viewName.Schema,
+		Catalog: viewName.Catalog,
+	}
+
+	stmt := &ast.DropTableStmt{
+		IfExists: n.IF() == nil && n.EXISTS() == nil,
+		Tables:   []*ast.TableName{table},
+	}
+
+	return stmt
+}
+
 func (c *cc) VisitCluster_expr(n *parser.Cluster_exprContext) interface{} {
 	var node ast.Node
 
@@ -1855,6 +2045,12 @@ func (c *cc) VisitCreate_table_stmt(n *parser.Create_table_stmtContext) interfac
 			return todo("VisitCreate_table_stmt", def.Changefeed())
 		}
 	}
+
+	if n.Table_inherits() != nil {
+		log.Fatalf("INNERITS is not implemented yet")
+		return todo("VisitCreate_table_stmt", n)
+	}
+
 	return stmt
 }
 
