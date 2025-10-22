@@ -83,10 +83,10 @@ type DtNumeric struct {
 	B  *int16
 	C  *int32
 	D  *int64
-	E  uint8
-	F  uint16
-	G  uint32
-	H  uint64
+	E  *uint8
+	F  *uint16
+	G  *uint32
+	H  *uint64
 	I  *float32
 	J  *float64
 	K  *types.Decimal

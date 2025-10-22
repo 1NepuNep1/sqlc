@@ -666,9 +666,9 @@ const fUnicodeFind = `-- name: FUnicodeFind :one
 SELECT Unicode::Find("hello", "ll")
 `
 
-func (q *Queries) FUnicodeFind(ctx context.Context) (uint64, error) {
+func (q *Queries) FUnicodeFind(ctx context.Context) (*uint64, error) {
 	row := q.db.QueryRowContext(ctx, fUnicodeFind)
-	var unicode_find uint64
+	var unicode_find *uint64
 	err := row.Scan(&unicode_find)
 	return unicode_find, err
 }
@@ -810,9 +810,9 @@ const fUnicodeRfind = `-- name: FUnicodeRfind :one
 SELECT Unicode::Rfind("hello", "l")
 `
 
-func (q *Queries) FUnicodeRfind(ctx context.Context) (uint64, error) {
+func (q *Queries) FUnicodeRfind(ctx context.Context) (*uint64, error) {
 	row := q.db.QueryRowContext(ctx, fUnicodeRfind)
-	var unicode_rfind uint64
+	var unicode_rfind *uint64
 	err := row.Scan(&unicode_rfind)
 	return unicode_rfind, err
 }
