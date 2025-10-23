@@ -8,3 +8,4 @@ FROM (
     GROUP BY id
 ) latest
 INNER JOIN test t USING (id, update_time);
+

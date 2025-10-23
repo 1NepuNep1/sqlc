@@ -3,3 +3,4 @@ CREATE TABLE activities (
     event_time Timestamp NOT NULL,
     PRIMARY KEY (account_id, event_time)
 );
+

@@ -4,3 +4,4 @@ CREATE TABLE bar (
     phone Text NOT NULL,
     PRIMARY KEY (id)
 );
+

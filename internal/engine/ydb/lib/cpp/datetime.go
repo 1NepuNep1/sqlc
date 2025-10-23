@@ -640,6 +640,13 @@ func dateTimeFormatFuncs() []*catalog.Function {
 			},
 			ReturnType: &ast.TypeName{Name: "any"},
 		},
+		{
+			Name: "datetime_format_call",
+			Args: []*catalog.Argument{
+				{Type: &ast.TypeName{Name: "any"}},
+			},
+			ReturnType: &ast.TypeName{Name: "string"},
+		},
 	}
 }
 

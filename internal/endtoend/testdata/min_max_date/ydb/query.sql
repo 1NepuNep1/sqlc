@@ -4,3 +4,4 @@ SELECT COUNT(*) AS NumOfActivities,
         CAST(MAX(event_time) AS Timestamp) AS MaxDate 
 FROM activities 
 WHERE account_id = $account_id;
+

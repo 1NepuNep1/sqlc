@@ -4,3 +4,4 @@ CREATE TABLE test (
     count Int64 NOT NULL,
     PRIMARY KEY (id, update_time)
 );
+
