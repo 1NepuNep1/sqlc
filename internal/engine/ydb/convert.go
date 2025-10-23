@@ -3323,9 +3323,7 @@ func (c *cc) handleInvokeSuffix(base ast.Node, invokeCtx *parser.Invoke_exprCont
 	case *ast.FuncCall:
 		funcCall.Func = baseNode.Func
 
-		if c.isLambdaFunction(baseNode.Func.Name) {
-			funcCall.Func.Name = baseNode.Func.Name + "_call"
-		}
+		funcCall.Func.Name = baseNode.Func.Name + "_call"
 
 		funcCall.Funcname.Items = append(funcCall.Funcname.Items, &ast.String{Str: funcCall.Func.Name})
 		return funcCall
