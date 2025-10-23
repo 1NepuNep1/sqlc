@@ -22,7 +22,7 @@ SELECT bar FROM foo WHERE baz = $baz
 
 func (q *Queries) Find(ctx context.Context, baz uuid.UUID, opts ...query.ExecuteOption) (*uuid.UUID, error) {
 	parameters := ydb.ParamsBuilder()
-	parameters = parameters.Param("$baz").UUID(baz)
+	parameters = parameters.Param("$baz").Uuid(baz)
 	row, err := q.db.QueryRow(ctx, find,
 		append(opts, query.WithParameters(parameters.Build()))...,
 	)
