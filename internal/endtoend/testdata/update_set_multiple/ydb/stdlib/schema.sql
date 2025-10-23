@@ -3,3 +3,4 @@ CREATE TABLE foo (
     slug Text NOT NULL,
     PRIMARY KEY (name, slug)
 );
+

@@ -25,3 +25,4 @@ CREATE TABLE weather_metrics (
     weather_type_id Int32,
     PRIMARY KEY (time, city_name)
 );
+

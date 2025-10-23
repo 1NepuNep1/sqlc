@@ -10,13 +10,6 @@
       "sql_package": "ydb-go-sdk",
       "overrides": [
         {
-          "column": "foo.id",
-          "go_type": {
-            "import": "github.com/gofrs/uuid",
-            "type": "UUID"
-          }
-        },
-        {
           "column": "foo.other_id",
           "go_type": {
             "import": "github.com/gofrs/uuid",

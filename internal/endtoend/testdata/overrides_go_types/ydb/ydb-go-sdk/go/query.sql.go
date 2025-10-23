@@ -10,7 +10,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
@@ -22,7 +22,7 @@ SELECT id, other_id, age, balance, bio, about FROM foo WHERE id = $id
 
 func (q *Queries) LoadFoo(ctx context.Context, id uuid.UUID, opts ...query.ExecuteOption) ([]Foo, error) {
 	parameters := ydb.ParamsBuilder()
-	parameters = parameters.Param("$id").UUID(id)
+	parameters = parameters.Param("$id").Uuid(id)
 	result, err := q.db.QueryResultSet(ctx, loadFoo,
 		append(opts, query.WithParameters(parameters.Build()))...,
 	)

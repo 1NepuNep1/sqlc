@@ -4,3 +4,4 @@ CREATE TABLE foo (
     baz Uuid NOT NULL,
     PRIMARY KEY (baz)
 );
+

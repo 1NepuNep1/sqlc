@@ -12,3 +12,4 @@ FROM weather_metrics
 WHERE time > DateTime::MakeTimestamp(DateTime::Now()) - Interval("P6M")
 GROUP BY bucket, city_name
 ORDER BY bucket DESC;
+

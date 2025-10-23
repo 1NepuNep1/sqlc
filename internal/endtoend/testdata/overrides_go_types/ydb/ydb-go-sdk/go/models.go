@@ -6,8 +6,8 @@ package override
 
 import (
 	orm "database/sql"
-	"github.com/gofrs/uuid"
 	fuid "github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	null "github.com/volatiletech/null/v8"
 	null_v4 "gopkg.in/guregu/null.v4"
 )

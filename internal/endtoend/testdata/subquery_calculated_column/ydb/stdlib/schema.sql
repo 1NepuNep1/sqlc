@@ -3,3 +3,4 @@ CREATE TABLE foo (
     b Int32,
     PRIMARY KEY (a, b)
 );
+

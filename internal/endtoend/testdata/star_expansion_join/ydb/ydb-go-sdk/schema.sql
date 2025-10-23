@@ -9,3 +9,4 @@ CREATE TABLE bar (
     d Text,
     PRIMARY KEY (c, d)
 );
+

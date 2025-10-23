@@ -340,7 +340,7 @@ func ydbBuilderMethodForColumnType(dbType string) string {
 	case "tztimestamp":
 		return "TzTimestamp"
 	case "uuid":
-		return "UUID"
+		return "Uuid"
 	case "yson":
 		return "YSON"
 
