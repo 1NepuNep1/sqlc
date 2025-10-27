@@ -347,9 +347,6 @@ func ydbBuilderMethodForColumnType(dbType string) string {
 	case "integer": // LIMIT/OFFSET parameters support
 		return "Uint64"
 
-	case "Integer": // Invalid YDB type - fallback to Uint64
-		return "Uint64"
-
 	//TODO: support other types
 	default:
 		// Check for decimal types

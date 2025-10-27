@@ -43,7 +43,7 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 		// // use the smallest type they have which is NullInt16
 		// return "sql.NullInt16"
 		return "*int8"
-	case "int16":
+	case "int16", "smallint":
 		if notNull {
 			return "int16"
 		}
@@ -52,7 +52,7 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 		}
 		// return "sql.NullInt16"
 		return "*int16"
-	case "int", "int32": //ydb doesn't have int type, but we need it to support untyped constants
+	case "int", "int32", "integer":
 		if notNull {
 			return "int32"
 		}
@@ -61,7 +61,7 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 		}
 		// return "sql.NullInt32"
 		return "*int32"
-	case "int64":
+	case "int64", "bigint":
 		if notNull {
 			return "int64"
 		}
@@ -217,16 +217,6 @@ func YDBType(req *plugin.GenerateRequest, options *opts.Options, col *plugin.Col
 
 	case "any":
 		return "interface{}"
-
-	case "integer":
-		// integer type is used for LIMIT/OFFSET parameters - use uint64 for semantic correctness
-		if notNull {
-			return "uint64"
-		}
-		if emitPointersForNull {
-			return "*uint64"
-		}
-		return "*uint64"
 
 	default:
 		if strings.HasPrefix(columnType, "decimal") {
