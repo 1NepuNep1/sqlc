@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
@@ -30,11 +28,7 @@ func (q *Queries) SelectUserByID(ctx context.Context, id int64, opts ...query.Ex
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []*string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -67,11 +61,7 @@ func (q *Queries) SelectUserByName(ctx context.Context, name *string, opts ...qu
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []*string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -102,11 +92,7 @@ func (q *Queries) SelectUserQuestion(ctx context.Context, question int64, opts .
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []*string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
