@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
@@ -30,11 +28,7 @@ func (q *Queries) FooLimit(ctx context.Context, limit uint64, opts ...query.Exec
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -71,11 +65,7 @@ func (q *Queries) FooLimitOffset(ctx context.Context, arg FooLimitOffsetParams, 
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

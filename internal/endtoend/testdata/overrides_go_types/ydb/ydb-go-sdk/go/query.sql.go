@@ -7,8 +7,6 @@ package override
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/google/uuid"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
@@ -30,11 +28,7 @@ func (q *Queries) LoadFoo(ctx context.Context, id uuid.UUID, opts ...query.Execu
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []Foo
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

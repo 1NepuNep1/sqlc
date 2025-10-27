@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
@@ -25,11 +23,7 @@ func (q *Queries) ListAuthors(ctx context.Context, opts ...query.ExecuteOption) 
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []Author
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -56,11 +50,7 @@ func (q *Queries) ListAuthorsIdenticalAlias(ctx context.Context, opts ...query.E
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []Author
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -96,11 +86,7 @@ func (q *Queries) ListMetrics(ctx context.Context, opts ...query.ExecuteOption) 
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []ListMetricsRow
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

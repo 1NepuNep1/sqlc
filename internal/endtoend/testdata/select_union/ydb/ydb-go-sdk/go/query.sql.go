@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
@@ -27,11 +25,7 @@ func (q *Queries) SelectUnion(ctx context.Context, opts ...query.ExecuteOption) 
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []Foo
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -59,11 +53,7 @@ func (q *Queries) SelectUnionAliased(ctx context.Context, opts ...query.ExecuteO
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []Foo
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -91,11 +81,7 @@ func (q *Queries) SelectUnionOther(ctx context.Context, opts ...query.ExecuteOpt
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []Foo
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -134,11 +120,7 @@ func (q *Queries) SelectUnionWithLimit(ctx context.Context, arg SelectUnionWithL
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []Foo
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
@@ -34,11 +32,7 @@ func (q *Queries) FuncNullable(ctx context.Context, favourites []int32, opts ...
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []*string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -73,11 +67,7 @@ func (q *Queries) FuncNullableNot(ctx context.Context, favourites []int32, opts 
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []*string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -119,11 +109,7 @@ func (q *Queries) FuncParamIdent(ctx context.Context, arg FuncParamIdentParams, 
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -158,11 +144,7 @@ func (q *Queries) FuncParamSoloArg(ctx context.Context, favourites []int32, opts
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -204,11 +186,7 @@ func (q *Queries) FuncParamString(ctx context.Context, arg FuncParamStringParams
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

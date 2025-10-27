@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/google/uuid"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
@@ -47,11 +45,7 @@ func (q *Queries) List(ctx context.Context, opts ...query.ExecuteOption) ([]Foo,
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []Foo
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

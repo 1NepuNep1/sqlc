@@ -3922,3 +3922,151 @@ func (c *cc) VisitSql_stmt(n *parser.Sql_stmtContext) interface{} {
 
 	return expr
 }
+
+func (c *cc) VisitNamed_nodes_stmt(n *parser.Named_nodes_stmtContext) interface{} {
+	return todo("VisitNamed_nodes_stmt", n)
+}
+
+func (c *cc) VisitDeclare_stmt(n *parser.Declare_stmtContext) interface{} {
+	return todo("VisitDeclare_stmt", n)
+}
+
+func (c *cc) VisitImport_stmt(n *parser.Import_stmtContext) interface{} {
+	return todo("VisitImport_stmt", n)
+}
+
+func (c *cc) VisitExport_stmt(n *parser.Export_stmtContext) interface{} {
+	return todo("VisitExport_stmt", n)
+}
+
+func (c *cc) VisitAlter_external_table_stmt(n *parser.Alter_external_table_stmtContext) interface{} {
+	return todo("VisitAlter_external_table_stmt", n)
+}
+
+func (c *cc) VisitDefine_action_or_subquery_stmt(n *parser.Define_action_or_subquery_stmtContext) interface{} {
+	return todo("VisitDefine_action_or_subquery_stmt", n)
+}
+
+func (c *cc) VisitIf_stmt(n *parser.If_stmtContext) interface{} {
+	return todo("VisitIf_stmt", n)
+}
+
+func (c *cc) VisitFor_stmt(n *parser.For_stmtContext) interface{} {
+	return todo("VisitFor_stmt", n)
+}
+
+func (c *cc) VisitCreate_object_stmt(n *parser.Create_object_stmtContext) interface{} {
+	return todo("VisitCreate_object_stmt", n)
+}
+
+func (c *cc) VisitAlter_object_stmt(n *parser.Alter_object_stmtContext) interface{} {
+	return todo("VisitAlter_object_stmt", n)
+}
+
+func (c *cc) VisitDrop_object_stmt(n *parser.Drop_object_stmtContext) interface{} {
+	return todo("VisitDrop_object_stmt", n)
+}
+
+func (c *cc) VisitCreate_external_data_source_stmt(n *parser.Create_external_data_source_stmtContext) interface{} {
+	return todo("VisitCreate_external_data_source_stmt", n)
+}
+
+func (c *cc) VisitAlter_external_data_source_stmt(n *parser.Alter_external_data_source_stmtContext) interface{} {
+	return todo("VisitAlter_external_data_source_stmt", n)
+}
+
+func (c *cc) VisitDrop_external_data_source_stmt(n *parser.Drop_external_data_source_stmtContext) interface{} {
+	return todo("VisitDrop_external_data_source_stmt", n)
+}
+
+func (c *cc) VisitCreate_replication_stmt(n *parser.Create_replication_stmtContext) interface{} {
+	return todo("VisitCreate_replication_stmt", n)
+}
+
+func (c *cc) VisitDrop_replication_stmt(n *parser.Drop_replication_stmtContext) interface{} {
+	return todo("VisitDrop_replication_stmt", n)
+}
+
+func (c *cc) VisitCreate_topic_stmt(n *parser.Create_topic_stmtContext) interface{} {
+	return todo("VisitCreate_topic_stmt", n)
+}
+
+func (c *cc) VisitAlter_topic_stmt(n *parser.Alter_topic_stmtContext) interface{} {
+	return todo("VisitAlter_topic_stmt", n)
+}
+
+func (c *cc) VisitDrop_topic_stmt(n *parser.Drop_topic_stmtContext) interface{} {
+	return todo("VisitDrop_topic_stmt", n)
+}
+
+func (c *cc) VisitGrant_permissions_stmt(n *parser.Grant_permissions_stmtContext) interface{} {
+	return todo("VisitGrant_permissions_stmt", n)
+}
+
+func (c *cc) VisitRevoke_permissions_stmt(n *parser.Revoke_permissions_stmtContext) interface{} {
+	return todo("VisitRevoke_permissions_stmt", n)
+}
+
+func (c *cc) VisitAlter_table_store_stmt(n *parser.Alter_table_store_stmtContext) interface{} {
+	return todo("VisitAlter_table_store_stmt", n)
+}
+
+func (c *cc) VisitUpsert_object_stmt(n *parser.Upsert_object_stmtContext) interface{} {
+	return todo("VisitUpsert_object_stmt", n)
+}
+
+func (c *cc) VisitAlter_replication_stmt(n *parser.Alter_replication_stmtContext) interface{} {
+	return todo("VisitAlter_replication_stmt", n)
+}
+
+func (c *cc) VisitCreate_resource_pool_stmt(n *parser.Create_resource_pool_stmtContext) interface{} {
+	return todo("VisitCreate_resource_pool_stmt", n)
+}
+
+func (c *cc) VisitAlter_resource_pool_stmt(n *parser.Alter_resource_pool_stmtContext) interface{} {
+	return todo("VisitAlter_resource_pool_stmt", n)
+}
+
+func (c *cc) VisitDrop_resource_pool_stmt(n *parser.Drop_resource_pool_stmtContext) interface{} {
+	return todo("VisitDrop_resource_pool_stmt", n)
+}
+
+func (c *cc) VisitCreate_backup_collection_stmt(n *parser.Create_backup_collection_stmtContext) interface{} {
+	return todo("VisitCreate_backup_collection_stmt", n)
+}
+
+func (c *cc) VisitAlter_backup_collection_stmt(n *parser.Alter_backup_collection_stmtContext) interface{} {
+	return todo("VisitAlter_backup_collection_stmt", n)
+}
+
+func (c *cc) VisitDrop_backup_collection_stmt(n *parser.Drop_backup_collection_stmtContext) interface{} {
+	return todo("VisitDrop_backup_collection_stmt", n)
+}
+
+func (c *cc) VisitAnalyze_stmt(n *parser.Analyze_stmtContext) interface{} {
+	return todo("VisitAnalyze_stmt", n)
+}
+
+func (c *cc) VisitCreate_resource_pool_classifier_stmt(n *parser.Create_resource_pool_classifier_stmtContext) interface{} {
+	return todo("VisitCreate_resource_pool_classifier_stmt", n)
+}
+
+func (c *cc) VisitAlter_resource_pool_classifier_stmt(n *parser.Alter_resource_pool_classifier_stmtContext) interface{} {
+	return todo("VisitAlter_resource_pool_classifier_stmt", n)
+}
+
+func (c *cc) VisitDrop_resource_pool_classifier_stmt(n *parser.Drop_resource_pool_classifier_stmtContext) interface{} {
+	return todo("VisitDrop_resource_pool_classifier_stmt", n)
+}
+
+func (c *cc) VisitBackup_stmt(n *parser.Backup_stmtContext) interface{} {
+	return todo("VisitBackup_stmt", n)
+}
+
+func (c *cc) VisitRestore_stmt(n *parser.Restore_stmtContext) interface{} {
+	return todo("VisitRestore_stmt", n)
+}
+
+func (c *cc) VisitAlter_sequence_stmt(n *parser.Alter_sequence_stmtContext) interface{} {
+	return todo("VisitAlter_sequence_stmt", n)
+}

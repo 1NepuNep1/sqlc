@@ -276,7 +276,7 @@ func (i *importer) interfaceImports() fileImports {
 	})
 
 	std["context"] = struct{}{}
-	
+
 	sqlpkg := parseDriver(i.Options.SqlPackage)
 	if sqlpkg.IsYDBGoSDK() {
 		pkg[ImportSpec{Path: "github.com/ydb-platform/ydb-go-sdk/v3/query"}] = struct{}{}
@@ -418,13 +418,10 @@ func (i *importer) queryImports(filename string) fileImports {
 
 	if sqlpkg.IsYDBGoSDK() {
 		hasParams := false
-		hasManyQueries := false
 		for _, q := range gq {
 			if !q.Arg.isEmpty() {
 				hasParams = true
-			}
-			if q.Cmd == metadata.CmdMany {
-				hasManyQueries = true
+				break
 			}
 		}
 		if hasParams {
@@ -432,11 +429,6 @@ func (i *importer) queryImports(filename string) fileImports {
 		}
 		pkg[ImportSpec{Path: "github.com/ydb-platform/ydb-go-sdk/v3/query"}] = struct{}{}
 		pkg[ImportSpec{Path: "github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"}] = struct{}{}
-
-		if hasManyQueries {
-			std["errors"] = struct{}{}
-			std["io"] = struct{}{}
-		}
 	}
 
 	if i.Options.WrapErrors {

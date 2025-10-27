@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
@@ -38,11 +36,7 @@ func (q *Queries) JoinNoConstraints(ctx context.Context, arg JoinNoConstraintsPa
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []int32
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -81,11 +75,7 @@ func (q *Queries) JoinParamWhereClause(ctx context.Context, arg JoinParamWhereCl
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []int32
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -118,11 +108,7 @@ func (q *Queries) JoinWhereClause(ctx context.Context, owner string, opts ...que
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []int32
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

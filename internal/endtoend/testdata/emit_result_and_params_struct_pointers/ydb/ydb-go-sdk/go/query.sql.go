@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
@@ -25,11 +23,7 @@ func (q *Queries) GetAll(ctx context.Context, opts ...query.ExecuteOption) ([]*F
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []*Foo
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -59,11 +53,7 @@ func (q *Queries) GetAllAByB(ctx context.Context, b *int32, opts ...query.Execut
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []int32
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 	"time"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
@@ -37,11 +35,7 @@ func (q *Queries) ListNullable(ctx context.Context, opts ...query.ExecuteOption)
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []ListNullableRow
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

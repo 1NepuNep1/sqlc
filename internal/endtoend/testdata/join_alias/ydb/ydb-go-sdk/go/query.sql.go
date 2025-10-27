@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
@@ -38,11 +36,7 @@ func (q *Queries) AliasExpand(ctx context.Context, id int32, opts ...query.Execu
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []AliasExpandRow
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -80,11 +74,7 @@ func (q *Queries) AliasJoin(ctx context.Context, id int32, opts ...query.Execute
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []AliasJoinRow
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
@@ -24,11 +22,7 @@ func (q *Queries) AlsoNotEqual(ctx context.Context, opts ...query.ExecuteOption)
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []bool
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -54,11 +48,7 @@ func (q *Queries) Equal(ctx context.Context, opts ...query.ExecuteOption) ([]boo
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []bool
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -84,11 +74,7 @@ func (q *Queries) GreaterThan(ctx context.Context, opts ...query.ExecuteOption) 
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []bool
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -114,11 +100,7 @@ func (q *Queries) GreaterThanOrEqual(ctx context.Context, opts ...query.ExecuteO
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []bool
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -144,11 +126,7 @@ func (q *Queries) LessThan(ctx context.Context, opts ...query.ExecuteOption) ([]
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []bool
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -174,11 +152,7 @@ func (q *Queries) LessThanOrEqual(ctx context.Context, opts ...query.ExecuteOpti
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []bool
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -204,11 +178,7 @@ func (q *Queries) NotEqual(ctx context.Context, opts ...query.ExecuteOption) ([]
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []bool
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}

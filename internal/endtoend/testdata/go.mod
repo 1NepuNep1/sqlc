@@ -1,8 +1,6 @@
 module github.com/sqlc-dev/sqlc/endtoend
 
-go 1.22.5
-
-toolchain go1.24.6
+go 1.23.0
 
 require (
 	github.com/go-sql-driver/mysql v1.7.0

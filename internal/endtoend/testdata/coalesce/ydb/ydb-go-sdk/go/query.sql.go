@@ -7,8 +7,6 @@ package querytest
 
 import (
 	"context"
-	"errors"
-	"io"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/pkg/xerrors"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
@@ -25,11 +23,7 @@ func (q *Queries) CoalesceNumeric(ctx context.Context, opts ...query.ExecuteOpti
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []int64
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -62,11 +56,7 @@ func (q *Queries) CoalesceNumericColumns(ctx context.Context, opts ...query.Exec
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []CoalesceNumericColumnsRow
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -98,11 +88,7 @@ func (q *Queries) CoalesceNumericNull(ctx context.Context, opts ...query.Execute
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []CoalesceNumericNullRow
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -129,11 +115,7 @@ func (q *Queries) CoalesceString(ctx context.Context, opts ...query.ExecuteOptio
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []string
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -166,11 +148,7 @@ func (q *Queries) CoalesceStringColumns(ctx context.Context, opts ...query.Execu
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []CoalesceStringColumnsRow
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
@@ -202,11 +180,7 @@ func (q *Queries) CoalesceStringNull(ctx context.Context, opts ...query.ExecuteO
 		return nil, xerrors.WithStackTrace(err)
 	}
 	var items []CoalesceStringNullRow
-	for {
-		row, err := result.NextRow(ctx)
-		if errors.Is(err, io.EOF) {
-			break
-		}
+	for row, err := range result.Rows(ctx) {
 		if err != nil {
 			return nil, xerrors.WithStackTrace(err)
 		}
