@@ -23,4 +23,3 @@ type Book struct {
 	Available time.Time
 	Tag       string
 }
-
