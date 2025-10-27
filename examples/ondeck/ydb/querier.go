@@ -10,7 +10,10 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 )
 
-type Querier interface { // Create a new city. The slug must be unique.// This is the second line of the comment// This is the third line
+type Querier interface {
+	// Create a new city. The slug must be unique.
+	// This is the second line of the comment
+	// This is the third line
 	CreateCity(ctx context.Context, arg CreateCityParams, opts ...query.ExecuteOption) (City, error)
 	CreateVenue(ctx context.Context, arg CreateVenueParams, opts ...query.ExecuteOption) (int32, error)
 	DeleteVenue(ctx context.Context, slug string, opts ...query.ExecuteOption) error
