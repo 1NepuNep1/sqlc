@@ -479,7 +479,7 @@ func (c *cc) VisitObject_feature_value(n *parser.Object_feature_valueContext) in
 		return bindPar
 
 	case n.STRING_VALUE() != nil:
-		value, _ := parseStringValue(n.STRING_VALUE().GetText())
+		value, _ := parseStringLiteral(n.STRING_VALUE().GetText())
 		return &ast.A_Const{Val: NewIdentifier(value), Location: c.pos(n.GetStart())}
 
 	case n.Bool_value() != nil:
@@ -3728,13 +3728,9 @@ func (c *cc) VisitLiteral_value(n *parser.Literal_valueContext) interface{} {
 
 	case n.STRING_VALUE() != nil: // !!! debug !!! (problem with quoted strings)
 		originalText := n.STRING_VALUE().GetText()
-		content, hasSuffix := parseStringValue(originalText)
+		content, _ := parseStringLiteral(originalText)
 
-		if hasSuffix {
-			return &ast.A_Const{Val: &ast.String{Str: originalText}, Location: c.pos(n.GetStart())}
-		} else {
-			return &ast.A_Const{Val: &ast.String{Str: content}, Location: c.pos(n.GetStart())}
-		}
+		return &ast.A_Const{Val: &ast.String{Str: content}, Location: c.pos(n.GetStart())}
 
 	case n.Bool_value() != nil:
 		var i bool

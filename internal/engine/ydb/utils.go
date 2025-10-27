@@ -296,8 +296,10 @@ func (c *cc) collectEqualityOps(ctx parser.ICond_exprContext) []antlr.TerminalNo
 	return ops
 }
 
-
-func parseStringValue(s string) (value string, hasSuffix bool) {
+// parseStringLiteral parses a string literal from a YQL query and returns the value and whether it has a suffix.
+// If a valid suffix is found, it is stripped and the content is returned.
+// FIXME: rewrite this logic to correctly handle the type based on the suffix.
+func parseStringLiteral(s string) (value string, hasSuffix bool) {
 	if len(s) < 2 {
 		return s, false
 	}
